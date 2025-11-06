@@ -1,0 +1,8 @@
+F:\Cyber\C#\Projects\Inheritence\bin\Debug\Inheritence.exe.config
+F:\Cyber\C#\Projects\Inheritence\bin\Debug\Inheritence.exe
+F:\Cyber\C#\Projects\Inheritence\bin\Debug\Inheritence.pdb
+F:\Cyber\C#\Projects\Inheritence\obj\Debug\Inheritence.csproj.AssemblyReference.cache
+F:\Cyber\C#\Projects\Inheritence\obj\Debug\Inheritence.csproj.CoreCompileInputs.cache
+F:\Cyber\C#\Projects\Inheritence\obj\Debug\Inheritence.exe
+F:\Cyber\C#\Projects\Inheritence\obj\Debug\Inheritence.pdb
+F:\Cyber\C#\Projects\Inheritence\obj\Debug\Inheritence.exe.config

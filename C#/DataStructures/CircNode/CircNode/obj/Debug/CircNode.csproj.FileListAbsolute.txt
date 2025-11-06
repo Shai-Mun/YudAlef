@@ -1,0 +1,7 @@
+E:\Cyber\C#\Projects\CircNode\CircNode\bin\Debug\CircNode.exe.config
+E:\Cyber\C#\Projects\CircNode\CircNode\bin\Debug\CircNode.exe
+E:\Cyber\C#\Projects\CircNode\CircNode\bin\Debug\CircNode.pdb
+E:\Cyber\C#\Projects\CircNode\CircNode\obj\Debug\CircNode.csproj.AssemblyReference.cache
+E:\Cyber\C#\Projects\CircNode\CircNode\obj\Debug\CircNode.csproj.CoreCompileInputs.cache
+E:\Cyber\C#\Projects\CircNode\CircNode\obj\Debug\CircNode.exe
+E:\Cyber\C#\Projects\CircNode\CircNode\obj\Debug\CircNode.pdb

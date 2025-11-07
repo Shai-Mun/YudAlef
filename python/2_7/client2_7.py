@@ -13,19 +13,19 @@ def menu():
     show client menu
     return: string with selection
     """
-    print('\n  1. ask for time')
-    print('\n  2. ask for random')
-    print('\n  3. ask for name')
-    print('\n  4. notify exit')
-    print('\n  5. run a file in the server')
-    print('\n  6. show a dir of the server')
-    print('\n  7. delete a file in the server')
-    print('\n  8. copy a file in the server')
-    print('\n  9. send a file from the server to you')
-    print('\n  10. send a screenshot the screen of the server')
-    print('\n  (11. some invalid data for testing)')
-    print('\n  12. make the pc sleep')
-    print('\n  13. make the pc open Hertzog' + 's Google')
+    print('1. ask for time')
+    print('2. ask for random')
+    print('3. ask for name')
+    print('4. notify exit')
+    print('5. run a file in the server')
+    print('6. show a dir of the server')
+    print('7. delete a file in the server')
+    print('8. copy a file in the server')
+    print('9. send a file from the server to you')
+    print('10. send a screenshot the screen of the server')
+    print('(11. some invalid data for testing)')
+    print('12. make the pc sleep')
+    print('13. make the pc open Hertzog' + 's Google')
 
 
     return input('Input 1 - 13 > ')
@@ -54,17 +54,17 @@ def protocol_build_request(from_user):
         case "6":
             return 'SDIR' + '~' + input("enter directory path: ")
         case "7":
-            return 'DELE' + '~' + input("enter file path: ")
+            return 'DELE' + '~' + r'.\server_files\\' + input("enter file name: ")
         case "8":
-            return 'COPY' + '~' + input("enter from file path: ") + "~" + input("\nenter to file path: ")
+            return 'COPY' + '~' + r'.\server_files\\' + input("enter from file name: ") + "~" + input("\nenter to file path: ")
         case "9":
-            ret_string = 'SEND' + '~' + input("enter file path: ")
-            f_name = input("enter file name: ")
+            ret_string = 'SEND' + '~' + r'.\server_files\\' + input("enter file name: ")
+            f_name = r'.\client_files\\' + input("enter file name: ")
             return ret_string
 
         case "10":
-            f_name = input("enter file name: ")
-            return 'SESS' + '~' + 'F:\screen.jpg'
+            f_name = r'.\client_files\\' + input("enter file name: ")
+            return 'SESS' + '~' + r'.\server_files\screen.jpg'
 
         case "11":
             return input("enter free text data to send> ")

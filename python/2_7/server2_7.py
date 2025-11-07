@@ -135,7 +135,7 @@ def protocol_build_reply(request):
 
         case 'SESS':
             image = pyautogui.screenshot()
-            image.save(r'F:\screen.jpg')
+            image.save(r'.\server_files\screen.jpg')
             f_path = fields[1]
             size = os.path.getsize(f_path)
             reply = 'SESR'

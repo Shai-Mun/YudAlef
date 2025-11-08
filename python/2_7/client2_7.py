@@ -143,6 +143,8 @@ def protocol_parse_reply(reply):
                 to_show = 'Server acknowledged the copying request'
             case 'SENT':
                 to_show = 'Server sent the file'
+            case 'SESR':
+                to_show = 'Server sent the screenshot'
             case 'RSCH':
                 to_show = 'Server opened the website'
 

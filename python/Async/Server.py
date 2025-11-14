@@ -1,12 +1,11 @@
-__author__ = 'Yossi'
 import socket
 import time
 import threading
 
-from  tcp_by_size import send_with_size ,recv_by_size
+from tcp_by_size import send_with_size, recv_by_size
 from AsyncMessages import AsyncMessages
 
-async_msg = None
+global async_msg
 
 EWOULDBLOCK = 10035
 
@@ -23,101 +22,100 @@ def handle_message(data, user_name):
         public_msg = fields[2]
         for user in async_msg.sock_by_user.keys():
             if user != user_name:
-                async_msg.put_msg_by_user("MSG|" + from_user + "|" + public_msg,user)
+                async_msg.put_msg_by_user("MSG|" + from_user + "|" + public_msg, user)
     if msg_type == "PRV":
         from_user = fields[1]
         to_user = fields[2]
         msg = fields[3]
-        async_msg.put_msg_by_user("MSG|" + from_user + "|" + msg,to_user)
+        async_msg.put_msg_by_user("MSG|" + from_user + "|" + msg, to_user)
 
     return to_send
 
-    def check_user_pass(u,p):
-        """
-        check in some db user and password
-        :param u:
-        :param p:
-        :return:
-        """
-        print ("name:" + u + " pass:" + p + " checked")
-        return True
+
+def check_user_pass(u, p):
+    """
+    check in some db user and password
+    :param u:
+    :param p:
+    :return:
+    """
+    print("name:" + u + " pass:" + p + " checked")
+    return True
 
 
-    def handl_client(sock , tid):
-        """
-        main thread - recv handle and answer also push async msgs
-        :param sock: socket
-        :param tid: thread is
-        :return:
-        """
-        global async_msg
-
+def handle_client(sock, tid):
+    """
+    main thread - recv handle and answer also push async msgs
+    :param sock: socket
+    :param tid: thread is
+    :return:
+    """
+    global async_msg
 
     user_name = ""
     exit_thread = False
 
-    print( "New Client num " + str(tid))
+    print("New Client num " + str(tid))
     to_send = "NAM|<uname>:<pass>"
 
-    got_name = False;
+    got_name = False
     while not got_name:
-        send_with_size(sock, bytearray(to_send,'utf8'))
+        send_with_size(sock, bytearray(to_send, 'utf8'))
         byte_data = recv_by_size(sock)
         data = byte_data.decode()
         if data == "":
-            print( "Client disconnected")
+            print("Client disconnected")
             exit_thread = True
             break
-        if data[:3] == "NMR" and len(data) > 6 :
+        if data[:3] == "NMR" and len(data) > 6:
             got_name = True
             fields = data[4:].split(':')
-            user_name =  fields[0]
+            user_name = fields[0]
             password = fields[1]
-            if check_user_pass(user_name,password):
+            if check_user_pass(user_name, password):
                 async_msg.sock_by_user[user_name] = sock
             else:
                 exit_thread = True
     sock.settimeout(0.3)
 
-    while not exit_thread :
+    while not exit_thread:
         try:
 
             byte_data = recv_by_size(sock)
             data = byte_data.decode()
             if data == "":
-                print( "Error: Seems Client DC")
+                print("Error: Seems Client DC")
                 break
 
-            to_send = handle_message(data,user_name)
+            to_send = handle_message(data, user_name)
             if to_send != "":
-                send_with_size(sock, bytearray(to_send,'utf8'))
+                send_with_size(sock, bytearray(to_send, 'utf8'))
 
-        except socket.error as  err:
+        except socket.error as err:
 
-            if err.errno == EWOULDBLOCK or str(err) == "timed out":  # if we use conn.settimeout(x)
+            if err.errno == EWOULDBLOCK or str(err) == "timed out":  # if we use conn.set timeout(x)
                 msgs = async_msg.get_async_messages_to_send(sock)
                 for data in msgs:
-                    send_with_size(sock, bytearray(data,'utf8'))
+                    send_with_size(sock, bytearray(data, 'utf8'))
                     time.sleep(0.1)
                 continue
 
             if err.errno == 10054:
-                #'Connection reset by peer'
-                print( "Error %d Client is Gone.  reset by peer." % (err.errno))
+                # 'Connection reset by peer'
+                print("Error %d Client is Gone.  reset by peer." % err.errno)
                 break
             else:
-                print( "%d General Sock Error Client disconnected" % (err.errno))
+                print("%d General Sock Error Client disconnected" % err.errno)
                 break
 
         except Exception as err:
-            print( "General Error:", str(err))
+            print("General Error:", str(err))
             break
     async_msg.delete_socket(sock)
     sock.close()
 
 
-
-    def main ():
+def main():
     global async_msg
 
     s = socket.socket()
@@ -127,29 +125,26 @@ def handle_message(data, user_name):
     s.bind(("0.0.0.0", 5050))
 
     s.listen(4)
-    print( "after listen")
+    print("after listen")
 
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
 
     threads = []
     i = 1
     while True:
-        cli_s , addr = s.accept()
-        print ("New Client")
+        cli_s, addr = s.accept()
+        print("New Client")
         async_msg.add_new_socket(cli_s)
 
-        t = threading.Thread(target = handl_client, args=(cli_s, i))
+        t = threading.Thread(target=handle_client, args=(cli_s, i))
         t.start()
-        i+=1
+        i += 1
         threads.append(t)
 
     for t in threads:
         t.join()
     s.close()
-    print( "Bye ..")
-
-
+    print("Bye ..")
 
     if __name__ == "__main__":
-    main()
+        main()

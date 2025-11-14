@@ -1,5 +1,3 @@
-__author__ = 'Yossi'
-
 # from  tcp_by_size import send_with_size ,recv_by_size
 SIZE_HEADER_FORMAT = "0000000|"  # n digits for data size + one delimiter
 size_header_size = len(SIZE_HEADER_FORMAT)
@@ -40,17 +38,9 @@ def send_with_size(sock, bdata):
     len_data = len(bdata)
     header_data = str(len_data).zfill(size_header_size - 1) + "|"
 
-    bytea = bytearray(header_data,encoding='utf8') + bdata
+    bytea = bytearray(header_data, encoding='utf8') + bdata
 
     sock.send(bytea)
     if TCP_DEBUG and len_data > 0:
         print("\nSent(%s)>>>" % (len_data,), end='')
         print("%s" % (bytea[:min(len(bytea), LEN_TO_PRINT)],))
-
-
-
-
-
-
-
-

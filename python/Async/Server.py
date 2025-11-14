@@ -8,6 +8,7 @@ from AsyncMessages import AsyncMessages
 global async_msg
 
 EWOULDBLOCK = 10035
+user_dict = {}
 
 
 def handle_message(data, user_name):
@@ -56,10 +57,10 @@ def handle_client(sock, tid):
     exit_thread = False
 
     print("New Client num " + str(tid))
-    to_send = "NAM|<uname>:<pass>"
+    to_send = "WNUM|Enter <number>"
 
-    got_name = False
-    while not got_name:
+    got_num = False
+    while not got_num:
         send_with_size(sock, bytearray(to_send, 'utf8'))
         byte_data = recv_by_size(sock)
         data = byte_data.decode()
@@ -67,15 +68,11 @@ def handle_client(sock, tid):
             print("Client disconnected")
             exit_thread = True
             break
-        if data[:3] == "NMR" and len(data) > 6:
-            got_name = True
+        if data[:4] == "GNUM" and len(data) > 6:
+            got_num = True
             fields = data[4:].split(':')
-            user_name = fields[0]
-            password = fields[1]
-            if check_user_pass(user_name, password):
-                async_msg.sock_by_user[user_name] = sock
-            else:
-                exit_thread = True
+            number = fields[0]
+            async_msg.sock_by_user[user_name] = sock
     sock.settimeout(0.3)
 
     while not exit_thread:
@@ -140,6 +137,9 @@ def main():
         t.start()
         i += 1
         threads.append(t)
+
+        if i >= 100:
+            break
 
     for t in threads:
         t.join()

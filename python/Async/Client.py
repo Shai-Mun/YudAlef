@@ -23,14 +23,29 @@ class Input_thread(threading.Thread):
     def run(self):
         global input_data
         time.sleep(2)
+
         while not close_thread:
+
             input_lock.acquire()
-            input_data = input("Enter_data to send>")
+
+            print("What do you want to do?\n")
+            print("1. Ask another user for num")
+            print("2. Ask for max num")
+            num = input()
+
+            match "num":
+                case "1":
+                    pass
+                case "2":
+                    pass
+
+            input_data = input("What do you want to do?\n")
+
             input_lock.release()
             time.sleep(0.2)  # prevent busy waiting
 
 
-def main(ip, user_name):
+def main(ip, num):
     global input_data, close_thread
 
     cli_s = socket.socket()
@@ -39,7 +54,6 @@ def main(ip, user_name):
     cli_s.connect((ip, 5050))
 
     cli_s.settimeout(0.3)
-    print("For Private type P:name:<message>\n")
 
     close_thread = False
     input_t = Input_thread()
@@ -54,13 +68,7 @@ def main(ip, user_name):
             input_lock.acquire()
             input_data = ""
             input_lock.release()
-            if data[:2] == "P:":
-                fields = data.split(":")
-                msg = "PRV|" + user_name + "|" + fields[1] + "|" + fields[2]
-                send_with_size(cli_s, bytearray(msg, 'utf8'))
-            else:
-                msg = "PUB|" + user_name + "|" + data
-                send_with_size(cli_s, bytearray(msg, 'utf8'))
+
 
         try:
 
@@ -72,11 +80,7 @@ def main(ip, user_name):
             print("Got data >>> " + data)
             fields = data.split("|")
             msg_type = data[:3]
-            if msg_type == "NAM":
-                msg = "NMR|" + user_name + ":" + user_name[::-1]
-                send_with_size(cli_s, bytearray(msg, 'utf8'))
-            elif msg_type == "MSG":
-                print(fields[1] + ": " + fields[2])
+
 
         except socket.error as err:
 
@@ -99,18 +103,19 @@ def main(ip, user_name):
     cli_s.close()
     input_t.join()
 
-    print("Bye Bye from " + user_name)
+    print("Bye Bye")
 
 
 if __name__ == "__main__":
     if len(argv) < 3:
         addr = "127.0.0.1"
-        u_name = "avi"
-        main(addr, u_name)
+        number = input("What is your number?\n")
+
+        main(addr, number)
 
         # print( "you must enter <IP> <username>")
         # exit()
     else:
         addr = argv[1]
-        u_name = argv[2]
-        main(addr, u_name)
+        number = argv[2]
+        main(addr, number)

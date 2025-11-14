@@ -1,5 +1,3 @@
-__author__ = 'Yossi'
-
 from sys import argv
 
 import socket
@@ -37,7 +35,7 @@ def main(ip, user_name):
 
     cli_s = socket.socket()
     if not ip or len(ip) < 7:
-        ip = "HertzogSchool.pythonanywhere.com"
+        ip = "127.0.0.1"
     cli_s.connect((ip, 5050))
 
     cli_s.settimeout(0.3)
@@ -82,7 +80,7 @@ def main(ip, user_name):
 
         except socket.error as err:
 
-            if err.errno == 10035 or str(err) == "timed out":  # if we use conn.settimeout(x)
+            if err.errno == 10035 or str(err) == "timed out":  # if we use conn.set timeout(x)
                 continue
             if err.errno == 10054:
                 # 'Connection reset by peer'
@@ -106,7 +104,7 @@ def main(ip, user_name):
 
 if __name__ == "__main__":
     if len(argv) < 3:
-        addr = "HertzogSchool.pythonanywhere.com"
+        addr = "127.0.0.1"
         u_name = "avi"
         main(addr, u_name)
 

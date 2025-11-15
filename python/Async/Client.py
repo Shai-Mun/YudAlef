@@ -1,82 +1,121 @@
+from sys import argv
+
 import socket
-import sys
+import time
 
-def handle_reply(reply):
-    handle_info = ""
-    command = reply[:4]
+import threading
 
-    if command == "HOUR":
-        handle_info = handle_hour(reply)
-    elif command == "ERR_":
-        handle_info = handle_err_(reply)
-    elif command == "MESG":
-        handle_info = handle_mesg(reply)
-    return handle_info+"\n"
+from tcp_by_size import send_with_size, recv_by_size
+
+input_data = ""
+close_thread = ""
+input_lock = threading.Lock()
 
 
-def handle_mesg(reply):
-    s = reply.split("~")
-    cli_message = "The server sent: " + s[1]
-    return cli_message
+class Input_thread(threading.Thread):
+    """
+    use global to indicate new command from user
+    """
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        global input_data
+        time.sleep(2)
+
+        while not close_thread:
+
+            input_lock.acquire()
+
+            print("What do you want to do?\n")
+            print("1. Ask another user for num")
+            print("2. Ask for max num")
+            num = input()
+
+            match "num":
+                case "1":
+                    pass
+                case "2":
+                    pass
+
+            input_data = input("What do you want to do?\n")
+
+            input_lock.release()
+            time.sleep(0.2)  # prevent busy waiting
 
 
-def handle_err_(reply):
-    s = reply.split("~")
-    cli_error = ""
+def main(ip, num):
+    global input_data, close_thread
 
-    error = s[1]
-    match int(error):
-        case 1:
-            cli_error = "Command doesn't exist."
-        case 2:
-            cli_error = "Invalid input."
-        case 3:
-            cli_error = "Place doesn't exist."
-        case 4:
-            cli_error = "I don't know the time."
-        case 5:
-            cli_error = "Connection ended unexpectedly."
-        case 6:
-            cli_error = "There is a problem with the geolocator."
-    return cli_error
+    cli_s = socket.socket()
+    if not ip or len(ip) < 7:
+        ip = "127.0.0.1"
+    cli_s.connect((ip, 5050))
 
+    cli_s.settimeout(0.3)
 
-def handle_hour(reply):
-    s = reply.split("~")
-    cli_time = f"Your time is {s[1]}:{s[2]}:{s[3]}\n"
-    return cli_time
+    close_thread = False
+    input_t = Input_thread()
+    input_t.start()
+
+    while True:
+        data = ""
+        if input_data == "q":
+            break
+        if input_data != "":
+            data = input_data
+            input_lock.acquire()
+            input_data = ""
+            input_lock.release()
 
 
-sock = socket.socket()
+        try:
 
-ip = '127.0.0.1'
-port = 3001
+            byte_data = recv_by_size(cli_s)
+            data = byte_data.decode()
+            if data == "":
+                print("seems server DC")
+                break
+            print("Got data >>> " + data)
+            fields = data.split("|")
+            msg_type = data[:3]
 
-sock.connect((ip, port))
 
-print("Connected to server\n\n")
-option = input("Options:\nEnter 1 to enter city name\nEnter exit to exit\n>")
-data = ""
+        except socket.error as err:
 
-while option != "exit":
-    try:
-        if option == "1":
-            data = "GTIM~" + input("Enter city name, first letter capital\n>")
-        sock.send(data.encode())
+            if err.errno == 10035 or str(err) == "timed out":  # if we use conn.set timeout(x)
+                continue
+            if err.errno == 10054:
+                # 'Connection reset by peer'
+                print("Error %d Client is Gone. %s reset by peer." % (err.errno, str(cli_s)))
+                break
+            else:
+                print("%d General Sock Error Client %s disconnected" % (err.errno, str(cli_s)))
+                break
 
-        sock.settimeout(5.0)
-        data = sock.recv(100).decode()
-        if data == "":
-            print("Server Disconnected")
+        except Exception as err:
+            print("General Error:", err.message)
             break
 
-        info = handle_reply(data)
-        print(info)
+    close_thread = True
+    print("Press Enter for exit")
+    cli_s.close()
+    input_t.join()
 
-        option = input("Options:\nEnter 1 to enter city name\nEnter exit to exit\n>")
+    print("Bye Bye")
 
-    except socket.timeout:
-        print("Socket operation timed out!")
 
-print("Disconnected from server")
-sock.close()
+if __name__ == "__main__":
+    if len(argv) < 3:
+        addr = "127.0.0.1"
+        number = input("What is your number?\n")
+
+        main(addr, number)
+
+        # print( "you must enter <IP> <username>")
+        # exit()
+    else:
+        addr = argv[1]
+        number = argv[2]
+        main(addr, number)

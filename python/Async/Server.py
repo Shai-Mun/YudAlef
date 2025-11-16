@@ -11,37 +11,42 @@ EWOULDBLOCK = 10035
 user_dict = {}
 
 
-def handle_message(data, user_name):
+def handle_gmax():
+    temp_u = ""
+    temp_n = -1
+
+    for key in user_dict:
+        if user_dict[key] > temp_n:
+            temp_u = key
+            temp_n = user_dict[key]
+
+    return temp_u, temp_n
+
+
+def handle_message(data, user):
     global async_msg
 
     to_send = ""
-    fields = data.split("|")
-    msg_type = fields[0]
+    fields = data.split("~")
+    code = fields[0]
 
-    if msg_type == "PUB":
-        from_user = fields[1]
-        public_msg = fields[2]
-        for user in async_msg.sock_by_user.keys():
-            if user != user_name:
-                async_msg.put_msg_by_user("MSG|" + from_user + "|" + public_msg, user)
-    if msg_type == "PRV":
-        from_user = fields[1]
-        to_user = fields[2]
-        msg = fields[3]
-        async_msg.put_msg_by_user("MSG|" + from_user + "|" + msg, to_user)
+    match code:
+        case "GNUM":
+            to_user = fields[1]
+            req_num = fields[2]
+            async_msg.put_msg_by_user("WNUM" + "~" + str(req_num) + "~", to_user)
+
+        case "MNUM":
+            num = fields[1]
+            to_user = str(int(fields[2]) // 1000000)
+            user_dict[str(user)] = int(num)
+            async_msg.put_msg_by_user("TNUM" + "~" + str(user) + "~" + str(num) + "~", to_user)
+
+        case "GMAX":
+            max_u, max_n = handle_gmax()
+            to_send = "MAXR" + "~" + str(max_u) + "~" + str(max_n) + "~"
 
     return to_send
-
-
-def check_user_pass(u, p):
-    """
-    check in some db user and password
-    :param u:
-    :param p:
-    :return:
-    """
-    print("name:" + u + " pass:" + p + " checked")
-    return True
 
 
 def handle_client(sock, tid):
@@ -57,24 +62,12 @@ def handle_client(sock, tid):
     exit_thread = False
 
     print("New Client num " + str(tid))
-    to_send = "WNUM|Enter <number>"
+    to_send = "URNM" + "~" + str(tid) + "~"
+    send_with_size(sock, to_send.encode())
+    async_msg.sock_by_user[str(tid)] = sock
 
-    got_num = False
-    while not got_num:
-        send_with_size(sock, bytearray(to_send, 'utf8'))
-        byte_data = recv_by_size(sock)
-        data = byte_data.decode()
-        if data == "":
-            print("Client disconnected")
-            exit_thread = True
-            break
-        if data[:4] == "GNUM" and len(data) > 6:
-            got_num = True
-            fields = data[4:].split(':')
-            number = fields[0]
-            async_msg.sock_by_user[user_name] = sock
+
     sock.settimeout(0.3)
-
     while not exit_thread:
         try:
 
@@ -84,7 +77,7 @@ def handle_client(sock, tid):
                 print("Error: Seems Client DC")
                 break
 
-            to_send = handle_message(data, user_name)
+            to_send = handle_message(data, tid)
             if to_send != "":
                 send_with_size(sock, bytearray(to_send, 'utf8'))
 

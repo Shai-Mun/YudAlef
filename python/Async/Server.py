@@ -47,8 +47,8 @@ def check_win():
     return None
 
 
-def check_request(request_number, user_num):
-    if user_num * 1000000 < request_number < (user_num * 1000000) + 1000000:
+def check_request(request_number, user_num, code):
+    if (user_num * 1000000) <= request_number < ((user_num * 1000000) + 1000000) or code == "MNUM":
         return True
     return False
 
@@ -59,56 +59,50 @@ def handle_message(data, user):
     to_send = ""
     fields = data.split("~")
     code = fields[0]
+    req_num = fields[1]
 
-    match code:
-        case "GNUM":
-            to_user = fields[1]
-            req_num = fields[2]
+    if not check_request(int(req_num), int(user), str(code)):
+        to_send = "EROR~005~Illegal request number~" + req_num
 
-            if not check_request(req_num, user):
-                to_send = "EROR~005~Illegal request number~" + req_num
+    else:
+        match code:
+            case "GNUM":
+                to_user = fields[2]
 
-            elif async_msg.sock_by_user.get(str(to_user)) is not None:
-                if int(to_user) == int(req_num) // 1000000:
-                    to_send = "EROR~007~Can't request yourself~" + req_num
+                if async_msg.sock_by_user.get(str(to_user)) is not None:
+                    if int(to_user) == int(req_num) // 1000000:
+                        to_send = "EROR~007~Can't request yourself~" + req_num
+
+                    else:
+                        async_msg.put_msg_by_user("WNUM" + "~" + str(req_num) + "~", to_user)
 
                 else:
-                    async_msg.put_msg_by_user("WNUM" + "~" + str(req_num) + "~", to_user)
+                    to_send = "EROR~004~User doesn't exist~" + req_num
 
-            else:
-                to_send = "EROR~004~User doesn't exist~" + req_num
+            case "MNUM":
+                num = int(fields[2])
 
-        case "MNUM":
-            num = fields[1]
-            req_num = fields[2]
+                if num < 100 or num > 999:
+                    to_send = "EROR~006~Illegal points number~" + req_num
+                else:
+                    to_user = str(int(req_num) // 1000000)
+                    user_dict[str(user)] = int(num)
+                    async_msg.put_msg_by_user("TNUM" + "~" + req_num + "~" + str(user) + "~" + str(num) + "~", to_user)
 
-            if not check_request(req_num, user):
-                to_send = "EROR~005~Illegal request number~" + req_num
+                    if check_add(str(to_user), str(user), str(num)):
+                        results = check_win()
+                        if results is not None:
+                            async_msg.put_msg_to_all("WINN" + "~" + results[0] + "~" + results[1] + "~" + results[2] + "~")
 
-            elif num < 100 or num > 999:
-                to_send = "EROR~006~Illegal points number~" + req_num
-            else:
-                to_user = str(int(fields[2]) // 1000000)
-                user_dict[str(user)] = int(num)
-                async_msg.put_msg_by_user("TNUM" + "~" + str(user) + "~" + str(num) + "~" + req_num + "~", to_user)
+            case "GMAX":
+                max_u, max_n = handle_gmax()
+                if max_u == "-1":
+                    to_send = "EROR~003~No number has been registered yet~" + fields[1]
+                else:
+                    to_send = "MAXR" + "~" + fields[1] + "~" + str(max_u) + "~" + str(max_n) + "~"
 
-                if check_add(str(to_user), str(user), str(num)):
-                    results = check_win()
-                    if results is not None:
-                        async_msg.put_msg_to_all("WINN" + "~" + results[0] + "~" + results[1] + "~" + results[2] + "~")
-
-        case "GMAX":
-            if not check_request(fields[1], user):
-                to_send = "EROR~005~Illegal request number~" + fields[1]
-
-            max_u, max_n = handle_gmax()
-            if max_u == "-1":
-                to_send = "EROR~003~No number has been registered yet~" + fields[1]
-            else:
-                to_send = "MAXR" + "~" + str(max_u) + "~" + str(max_n) + "~" + fields[1] + "~"
-
-        case _:
-            to_send = "EROR~002~Code message isn't recognized~" + fields[1]
+            case _:
+                to_send = "EROR~002~Code message isn't recognized~" + fields[1]
 
     return to_send
 

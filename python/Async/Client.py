@@ -50,7 +50,7 @@ def handle_your_number(num):
 
 
 def handle_get_number(user_req):
-    return protocol_build_request("3") + str(user_req) + "~"
+    return "MNUM" + "~" + str(user_req) + "~" + str(user_num) + "~"
 
 
 def handle_tnum(name, number):
@@ -99,13 +99,10 @@ def protocol_build_request(from_user):
     match from_user:
         case "1":
             req_user = input("What is the user's num?\n>>> ")
-            ret = "GNUM" + "~" + str(req_user) + "~" + str(req_num) + "~"
+            ret = "GNUM" + "~" + str(req_num) + "~" + str(req_user) + "~"
 
         case "2":
             ret = "GMAX" + "~" + str(req_num) + "~"
-
-        case "3":
-            return "MNUM" + "~" + str(user_num) + "~"
 
     req_num += 1
     return ret

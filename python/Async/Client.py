@@ -1,3 +1,4 @@
+import sys
 from sys import argv
 
 import socket
@@ -8,8 +9,9 @@ import threading
 from tcp_by_size import send_with_size, recv_by_size
 
 input_data = ""
-user_num = 0
+username = 0
 req_num = 0
+user_num = 0
 close_thread = ""
 to_send = ""
 input_lock = threading.Lock()
@@ -31,7 +33,7 @@ class Input_thread(threading.Thread):
 
             input_lock.acquire()
             menu()
-            input_data = input(">>>")
+            input_data = input(">>> ")
 
             if to_send == "":
                 to_send = protocol_build_request(input_data)
@@ -41,14 +43,27 @@ class Input_thread(threading.Thread):
 
 
 def handle_your_number(num):
-    global user_num, req_num
-    print("Your user number is " + num)
-    user_num = num
+    global username, req_num
+    print("Your user number is " + num + "\n")
+    username = num
     req_num = int(num) * 1000000
 
 
 def handle_get_number(user_req):
     return protocol_build_request("3") + str(user_req) + "~"
+
+
+def handle_tnum(name, number):
+    print("User " + name + "'s number is " + number + "\n>>> ")
+
+
+def handle_max(name, max_p):
+    print("User " + name + " has the maximum number of points, which is " + max_p + "\n>>> ")
+
+
+def handle_win(user, points, requests):
+    print("User " + str(user) + " won with " + str(points) + " points and his requests in order to win were "
+          + str(requests))
 
 
 def handle_reply(data):
@@ -64,6 +79,18 @@ def handle_reply(data):
         case "WNUM":
             to_send = handle_get_number(fields[1])
 
+        case "TNUM":
+            handle_tnum(fields[1], fields[2])
+
+        case "MAXR":
+            handle_max(fields[1], fields[2])
+
+        case "WINN":
+            handle_win(fields[1], fields[2], fields[3])
+
+        case "EROR":
+            print(data)
+
 
 def protocol_build_request(from_user):
     global req_num
@@ -71,15 +98,14 @@ def protocol_build_request(from_user):
     ret = ""
     match from_user:
         case "1":
-            req_user = input("What is the user's num?\n")
+            req_user = input("What is the user's num?\n>>> ")
             ret = "GNUM" + "~" + str(req_user) + "~" + str(req_num) + "~"
 
         case "2":
             ret = "GMAX" + "~" + str(req_num) + "~"
 
         case "3":
-            num = input("What is your number? (100-999)\n")
-            return "MNUM" + "~" + str(num) + "~"
+            return "MNUM" + "~" + str(user_num) + "~"
 
     req_num += 1
     return ret
@@ -121,7 +147,7 @@ def main(ip):
             # if to_send == "":
             #     to_send = protocol_build_request(data)
             if to_send != "":
-                send_with_size(cli_s, bytearray(to_send,'utf8'))
+                send_with_size(cli_s, bytearray(to_send, 'utf8'))
 
             to_send = ""
 
@@ -132,7 +158,7 @@ def main(ip):
             if data == "":
                 print("seems server DC")
                 break
-            print("Got data >>> " + data)
+            # print("Got data >>> " + data)
             handle_reply(data)
 
 
@@ -161,12 +187,14 @@ def main(ip):
 
 
 if __name__ == "__main__":
+
     if len(argv) < 3:
         addr = "127.0.0.1"
+        user_num = input("What is your number?\n>>> ")
         main(addr)
-
         # print( "you must enter <IP> <username>")
         # exit()
     else:
         addr = argv[1]
+        user_num = argv[2]
         main(addr)

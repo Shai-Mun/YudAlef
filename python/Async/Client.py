@@ -3,6 +3,7 @@ from sys import argv
 
 import socket
 import time
+import random
 
 import threading
 
@@ -50,6 +51,9 @@ def handle_your_number(num):
 
 
 def handle_get_number(user_req):
+    delay = random.randint(2, 10)
+    print(f"Sleeping for {delay} seconds...")
+    time.sleep(delay)
     return "MNUM" + "~" + str(user_req) + "~" + str(user_num) + "~"
 
 
@@ -80,10 +84,10 @@ def handle_reply(data):
             to_send = handle_get_number(fields[1])
 
         case "TNUM":
-            handle_tnum(fields[1], fields[2])
+            handle_tnum(fields[2], fields[3])
 
         case "MAXR":
-            handle_max(fields[1], fields[2])
+            handle_max(fields[2], fields[3])
 
         case "WINN":
             handle_win(fields[1], fields[2], fields[3])

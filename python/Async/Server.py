@@ -1,6 +1,7 @@
 import socket
 import time
 import threading
+import random
 
 from tcp_by_size import send_with_size, recv_by_size
 from AsyncMessages import AsyncMessages
@@ -97,12 +98,15 @@ def handle_message(data, user):
             case "GMAX":
                 max_u, max_n = handle_gmax()
                 if max_u == "-1":
-                    to_send = "EROR~003~No number has been registered yet~" + fields[1]
+                    to_send = "EROR~003~No number has been registered yet~" + req_num
                 else:
-                    to_send = "MAXR" + "~" + fields[1] + "~" + str(max_u) + "~" + str(max_n) + "~"
+                    to_send = "MAXR" + "~" + req_num + "~" + str(max_u) + "~" + str(max_n) + "~"
+                    delay = random.randint(2, 10)
+                    print(f"Sleeping for {delay} seconds...")
+                    time.sleep(delay)
 
             case _:
-                to_send = "EROR~002~Code message isn't recognized~" + fields[1]
+                to_send = "EROR~002~Code message isn't recognized~" + req_num
 
     return to_send
 

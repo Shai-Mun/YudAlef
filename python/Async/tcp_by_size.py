@@ -1,7 +1,7 @@
 # from  tcp_by_size import send_with_size ,recv_by_size
 SIZE_HEADER_FORMAT = "0000000|"  # n digits for data size + one delimiter
 size_header_size = len(SIZE_HEADER_FORMAT)
-TCP_DEBUG = True
+TCP_DEBUG = False
 LEN_TO_PRINT = 100
 
 

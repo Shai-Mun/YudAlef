@@ -175,7 +175,7 @@ def main(ip):
 
     port = 1233
     try:
-        sock.connect((ip,port))
+        sock.connect((ip, port))
         print(f'Connect succeeded {ip}:{port}')
         connected = True
     except:
@@ -188,7 +188,7 @@ def main(ip):
             print("Selection error try again")
             continue
         try:
-            send_with_size(sock,to_send.encode())
+            send_with_size(sock, to_send.encode())
             byte_data = recv_by_size(sock)
             if byte_data == b'':
                 print('Seems server disconnected abnormal')

@@ -1,27 +1,26 @@
 import socket
 
 
-def http_recv(sock: socket.socket):
+def http_recv(sock: socket.socket, size=8192):
     data = b''
     recv_byte = b' '
+    rnrn_pos = -1
 
-    while recv_byte:
-        recv_byte = sock.recv(1)
-        if b'\r\n\r\n' in data:
-            break
-        elif recv_byte == b'':
+    while rnrn_pos == -1:
+        recv_byte = sock.recv(size)
+        if recv_byte == b'':
             return None, None, None
-
         data += recv_byte
+        rnrn_pos = data.find(b'\r\n\r\n')
 
-    end_pos = data.find(b'\r\n')
-    first_line = data[:end_pos].decode().split()
-    headers_list = data[end_pos+2::len(data)-4].split(b'\r\n')
-    if headers_list is None:
+    headers_list = data[:rnrn_pos-4].split(b'\r\n')
+    first_line = headers_list[0].decode()
+
+    if len(headers_list) < 2:
         return first_line, {}, b''
 
     headers = {}
-    for h in headers_list:
+    for h in headers_list[1:]:
         headers[h.split(b': ')[0].lower().strip()] = h.split(b': ')[1]
 
     body_length = -1
@@ -29,20 +28,54 @@ def http_recv(sock: socket.socket):
     if b'content-length' in headers:
         body_length = int(headers[b'content-length'])
 
+        body = data[rnrn_pos+4:]
         while len(body) < body_length:
-            body += sock.recv(body_length - len(body))
+            body += sock.recv(min(body_length - len(body), size))
 
-        return first_line, headers, body
+    return first_line, headers, body
+
+
+def http_send(sock: socket.socket, first_line, headers, body):
+    to_send = first_line
+    to_send += headers
+    if len(body) != 0:
+        to_send += 'Content-Length: ' + str(len(body))
+    to_send += '\r\n' + body
+
+    sock.send(to_send.encode())
 
 
 def main():
-    s = socket.socket()
-    s.bind(("0.0.0.0", 8001))
-    s.listen(3)
-    print("Listening...")
-    cli, addr = s.accept()
-    print("New Client")
+    # s = socket.socket()
+    # s.bind(("0.0.0.0", 8001))
+    # s.listen(3)
+    # print("Listening...")
+    # cli, addr = s.accept()
+    # print("New Client")
     request_cnt = 1
+
+    # CLIENT SIDE
+    cli = socket.socket()
+    port = 80
+    ip = 'textfiles.com'
+    try:
+        cli.connect((ip, port))
+        print(f'Connect succeeded {ip}:{port}')
+    except:
+        print(f'Error while trying to connect.  Check ip or port -- {ip}:{port}')
+
+    cli.send("POST / HTTP/1.0\r\n\r\n".encode())
+    cli.close()
+    cli = socket.socket()
+    try:
+        cli.connect((ip, port))
+        print(f'Connect succeeded {ip}:{port}')
+    except:
+        print(f'Error while trying to connect.  Check ip or port -- {ip}:{port}')
+
+    cli.send("GET /stories/ HTTP/1.0\r\n\r\n".encode())
+
+    # SERVER SIDE:
     while True:
         request, headers, body = http_recv(cli)
         print("------------------------------------------ ", request_cnt)
@@ -55,7 +88,7 @@ def main():
         if resource == '/':
             html = (f'<html><head><title>My Site</title></head>'
                     f'<body>Got Default Request<br/>') + all_data
-        elif resource == "/favicon.ico" :
+        elif resource == "/favicon.ico":
             html = (f'<html><head><title>My Site</title></head>'
                     f'<body>Favicon Request:<br/>') + all_data
         else:

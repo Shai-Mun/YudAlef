@@ -13,16 +13,16 @@ def main():
     port = 8111
 
     while True:
-        addr, port = handle_listen(port, 'A', 'B')
+        port = handle_connect(addr, port)
+        if port is None:
+            break
+
+        addr, port = handle_listen(port, 'B', 'A')
         if addr is None:
             break
 
         addr = str(addr)
         port = int(port)
-
-        port = handle_connect(addr, port)
-        if port is None:
-            break
 
 
     print('Bye ..')

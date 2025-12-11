@@ -4,11 +4,13 @@ from HttpProcs import http_recv, http_send
 
 OK_RESPONSE = 'HTTP/1.1 200 OK\r\n'
 NOT_FOUND_RESPONSE = ('HTTP/1.1 404 Not Found\r\nContent-Length: 27\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
-                  '<h1>404 File Not Found</h1>')
-ERROR_RESPONSE = ('HTTP/1.1 500 Internal Server Error\r\nContent-Length: 34\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
-                  '<h1>500 Internal Server Error</h1>')
-PERMISSION_RESPONSE = ('HTTP/1.1 403 Forbidden\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+                      '<h1>404 File Not Found</h1>')
+ERROR_RESPONSE = ('HTTP/1.1 500 Internal Server Error\r\nContent-Length: 34\r\n' +
+                  'Content-Type: text/html; charset=utf-8\r\n\r\n<h1>500 Internal Server Error</h1>')
+PERMS_RESPONSE = ('HTTP/1.1 403 Forbidden\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                   '<h1>403 Forbidden</h1>')
+UPLOAD_RESPONSE = ('HTTP/1.1 200 OK\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+                   '<h1>File Uploaded</h1>')
 VALID_PERM = ['/css', '/imgs', '/js', '/index.html']
 
 
@@ -25,37 +27,33 @@ def main():
     while True:
         request, headers, body = http_recv(cli)
         print("------------------------------------------ ", request_cnt)
-        # if not request:
-        #     print("Client disconnected")
-        #     break
-
+        if not request:
+            print("Client disconnected")
+            break
 
         all_data = f"#:{request_cnt}\n----{request}\n----headers:{headers}\n----Body:{body}"
         print(all_data)
 
         method, resource, req = request.split()
 
+        if resource == '/':
+            resource = '/index.html'
+        filename = '.' + resource
+        params = resource[resource.find("?") + 1:]
+
         if method == "GET" and req == "HTTP/1.1":
 
-            if resource == '/':
-                resource = '/index.html'
-            filename = '.' + resource
-
-            params = resource[resource.find("?")+1:]
             if '/calculate-next' in resource:
                 num = int(params.split("=")[1])
                 html = f'<h1>{num+1}</h1>'
-                cli.send(f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n'.encode() + html.encode())
+                cli.send((f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\n' +
+                         'Content-Type: text/html;charset=utf-8\r\n\r\n' + html).encode())
 
             elif '/calculate-area' in resource:
                 num1, num2 = (float(x[str(x).find("=")+1:]) for x in params.split("&"))
                 html = f'<h1>{(num1*num2)/2}</h1>'
-                cli.send(f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n'.encode() + html.encode())
-
-            elif '/upload' in resource:
-                upload_name = params.split("=")[1]
-                with open(f'./uploads/{upload_name}', 'wb') as f:
-                     f.write(body)
+                cli.send((f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\n' +
+                         'Content-Type: text/html; charset=utf-8\r\n\r\n' + html).encode())
 
             elif os.path.isfile(filename):
                 if resource[:resource[1:].find("/")+1] in VALID_PERM or resource in VALID_PERM:
@@ -81,10 +79,20 @@ def main():
                     http_send(cli, OK_RESPONSE, resp_headers, data)
 
                 else:
-                    cli.send(PERMISSION_RESPONSE.encode())
+                    cli.send(PERMS_RESPONSE.encode())
 
             else:
                 cli.send(NOT_FOUND_RESPONSE.encode())
+        elif method == "POST" and req == "HTTP/1.1":
+
+            if '/upload' in resource:
+                upload_name = body[body.find(b'filename=')+10:]
+                upload_name = upload_name[:upload_name.find(b'"')]
+
+                with open(f'./uploads/{upload_name.decode()}', 'wb') as f:
+                    data = body[body.find(b'\r\n\r\n')+4:body.find(b'\r\n-')]
+                    f.write(data)
+                cli.send(UPLOAD_RESPONSE.encode())
 
         else:
             cli.send(ERROR_RESPONSE.encode())

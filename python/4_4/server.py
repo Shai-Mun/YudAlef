@@ -11,7 +11,7 @@ PERMS_RESPONSE = ('HTTP/1.1 403 Forbidden\r\nContent-Length: 22\r\nContent-Type:
                   '<h1>403 Forbidden</h1>')
 UPLOAD_RESPONSE = ('HTTP/1.1 200 OK\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                    '<h1>File Uploaded</h1>')
-VALID_PERM = ['/css', '/imgs', '/js', '/index.html']
+VALID_PERM = ['/css', '/imgs', '/js', '/index.html', '/uploads']
 
 
 def main():
@@ -42,6 +42,10 @@ def main():
         params = resource[resource.find("?") + 1:]
 
         if method == "GET" and req == "HTTP/1.1":
+
+            if '/image' in resource:
+                filename = './uploads/' + params.split("=")[1]
+                resource = filename[1:]
 
             if '/calculate-next' in resource:
                 num = int(params.split("=")[1])
@@ -83,15 +87,14 @@ def main():
 
             else:
                 cli.send(NOT_FOUND_RESPONSE.encode())
+
         elif method == "POST" and req == "HTTP/1.1":
 
             if '/upload' in resource:
-                upload_name = body[body.find(b'filename=')+10:]
-                upload_name = upload_name[:upload_name.find(b'"')]
+                upload_name = headers[b'filename']
 
                 with open(f'./uploads/{upload_name.decode()}', 'wb') as f:
-                    data = body[body.find(b'\r\n\r\n')+4:body.find(b'\r\n-')]
-                    f.write(data)
+                    f.write(body)
                 cli.send(UPLOAD_RESPONSE.encode())
 
         else:

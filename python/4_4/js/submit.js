@@ -156,17 +156,15 @@ $("#PostImageSubmit").click(function() {
   }
 
   // Use FormData for image uploads
-  var formData = new FormData();
-  formData.append("file", file);
-  alert(formData)
-  $("#PostImageSubmit").addClass("pro").html("");
-
   var request = $.ajax({
     url: funcURL,
     method: "POST",
-    data: formData,
+    data: file,
     processData: false, // Don't pre-process FormData
     contentType: false, // Set content type automatically
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader("filename", filename);
+    },
     timeout: 200000
   });
 

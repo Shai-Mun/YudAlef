@@ -163,7 +163,7 @@ $("#PostImageSubmit").click(function() {
     processData: false, // Don't pre-process FormData
     contentType: false, // Set content type automatically
     beforeSend: function (xhr) {
-      xhr.setRequestHeader("filename", filename);
+      xhr.setRequestHeader("file-name", filename);
     },
     timeout: 200000
   });

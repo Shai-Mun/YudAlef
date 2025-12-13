@@ -11,20 +11,25 @@ PERMS_RESPONSE = ('HTTP/1.1 403 Forbidden\r\nContent-Length: 22\r\nContent-Type:
                   '<h1>403 Forbidden</h1>')
 UPLOAD_RESPONSE = ('HTTP/1.1 200 OK\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                    '<h1>File Uploaded</h1>')
+HTML_RESPONSE = 'HTTP/1.1 200 OK\r\nContent-Length: r1\r\nContent-Type: text/html; charset=utf-8\r\n\r\nr2'
+MOVED_RESPONSE = ('HTTP/1.1 302 Moved Temporarily\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+                   '<h1>File moved to r1</h1>')
 VALID_PERM = ['/css', '/imgs', '/js', '/index.html', '/uploads']
-
+MOVED_FILES = {'./imgs/moved.jpg': './ClientFiles/test-image.jpg'}
 
 def main():
     # SERVER SIDE:
     s = socket.socket()
-    s.bind(("0.0.0.0", 80))
-    s.listen(3)
-    print("Listening...")
-    cli, addr = s.accept()
-    print("New Client")
+    s.bind(("127.0.0.1", 80))
+
     request_cnt = 1
 
+
     while True:
+        s.listen(20)
+        print("Listening...")
+        cli, addr = s.accept()
+        print(f"New Client Connected")
         request, headers, body = http_recv(cli)
         print("------------------------------------------ ", request_cnt)
         if not request:
@@ -50,17 +55,19 @@ def main():
             if '/calculate-next' in resource:
                 num = int(params.split("=")[1])
                 html = f'<h1>{num+1}</h1>'
-                cli.send((f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\n' +
-                         'Content-Type: text/html;charset=utf-8\r\n\r\n' + html).encode())
+                cli.send(HTML_RESPONSE.replace('r1', str(len(str(html)))).replace('r2', str(html)).encode())
 
             elif '/calculate-area' in resource:
                 num1, num2 = (float(x[str(x).find("=")+1:]) for x in params.split("&"))
                 html = f'<h1>{(num1*num2)/2}</h1>'
-                cli.send((f'HTTP/1.1 200 OK\r\nContent-Length: {len(str(html))}\r\n' +
-                         'Content-Type: text/html; charset=utf-8\r\n\r\n' + html).encode())
+                cli.send(HTML_RESPONSE.replace('r1', str(len(str(html)))).replace('r2', str(html)).encode())
+
 
             elif os.path.isfile(filename):
-                if resource[:resource[1:].find("/")+1] in VALID_PERM or resource in VALID_PERM:
+                if filename in MOVED_FILES:
+                    cli.send(MOVED_RESPONSE.replace('r1', str(MOVED_FILES[filename])).encode())
+
+                elif resource[:resource[1:].find("/")+1] in VALID_PERM or resource in VALID_PERM:
 
                     with open(filename, 'rb') as f:
                         data = f.read()
@@ -91,7 +98,7 @@ def main():
         elif method == "POST" and req == "HTTP/1.1":
 
             if '/upload' in resource:
-                upload_name = headers[b'filename']
+                upload_name = headers[b'file-name']
 
                 with open(f'./uploads/{upload_name.decode()}', 'wb') as f:
                     f.write(body)
@@ -100,8 +107,7 @@ def main():
         else:
             cli.send(ERROR_RESPONSE.encode())
 
-        if request.split()[2].strip().lower() == "http/1.0" or headers.get('connection', '') == 'close':
-            break
+        cli.close()
         request_cnt += 1
 
 

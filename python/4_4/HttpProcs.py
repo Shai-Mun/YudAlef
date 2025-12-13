@@ -2,7 +2,6 @@ import socket
 
 def http_recv(sock: socket.socket, size=8192):
     data = b''
-    recv_byte = b' '
     rnrn_pos = -1
 
     while rnrn_pos == -1:
@@ -12,14 +11,14 @@ def http_recv(sock: socket.socket, size=8192):
         data += recv_byte
         rnrn_pos = data.find(b'\r\n\r\n')
 
-    headers_list = data[:rnrn_pos-4].split(b'\r\n')
-    first_line = headers_list[0].decode()
+    first_line = data[:data.find(b'\r\n')].decode("utf-8","ignore")
 
-    if len(headers_list) < 2:
+    headers_list = data[:rnrn_pos].split(b'\r\n')[1:]
+    if len(headers_list) == 0:
         return first_line, {}, b''
 
     headers = {}
-    for h in headers_list[1:]:
+    for h in headers_list:
         headers[h.split(b': ')[0].lower().strip()] = h.split(b': ')[1]
 
     body = b''

@@ -23,17 +23,18 @@ def main():
     s.bind(("127.0.0.1", 80))
 
     request_cnt = 1
-
+    s.listen(20)
+    print("Listening...")
 
     while True:
-        s.listen(20)
-        print("Listening...")
         cli, addr = s.accept()
         print(f"New Client Connected")
+
         request, headers, body = http_recv(cli)
         print("------------------------------------------ ", request_cnt)
         if not request:
             print("Client disconnected")
+            cli.close()
             break
 
         all_data = f"#:{request_cnt}\n----{request}\n----headers:{headers}\n----Body:{body}"
@@ -46,7 +47,7 @@ def main():
         filename = '.' + resource
         params = resource[resource.find("?") + 1:]
 
-        if method == "GET" and req == "HTTP/1.1":
+        if method == "GET" and (req == "HTTP/1.1" or req == "HTTP/1.0"):
 
             if '/image' in resource:
                 filename = './uploads/' + params.split("=")[1]
@@ -107,8 +108,12 @@ def main():
         else:
             cli.send(ERROR_RESPONSE.encode())
 
-        cli.close()
         request_cnt += 1
+
+        if req == "HTTP/1.0":
+            cli.close()
+            break
+
 
 
 if __name__ == '__main__':

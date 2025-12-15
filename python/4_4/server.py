@@ -2,20 +2,23 @@ import socket
 import os
 from HttpProcs import http_recv, http_send
 
-OK_RESPONSE = 'HTTP/1.1 200 OK\r\n'
-NOT_FOUND_RESPONSE = ('HTTP/1.1 404 Not Found\r\nContent-Length: 27\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+HTTP_TYPE = '1.0'
+
+OK_RESPONSE = f'HTTP/{HTTP_TYPE} 200 OK\r\n'
+NOT_FOUND_RESPONSE = (f'HTTP/{HTTP_TYPE} 404 Not Found\r\nContent-Length: 27\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                       '<h1>404 File Not Found</h1>')
-ERROR_RESPONSE = ('HTTP/1.1 500 Internal Server Error\r\nContent-Length: 34\r\n' +
+ERROR_RESPONSE = (f'HTTP/{HTTP_TYPE} 500 Internal Server Error\r\nContent-Length: 34\r\n' +
                   'Content-Type: text/html; charset=utf-8\r\n\r\n<h1>500 Internal Server Error</h1>')
-PERMS_RESPONSE = ('HTTP/1.1 403 Forbidden\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+PERMS_RESPONSE = (f'HTTP/{HTTP_TYPE} 403 Forbidden\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                   '<h1>403 Forbidden</h1>')
-UPLOAD_RESPONSE = ('HTTP/1.1 200 OK\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+UPLOAD_RESPONSE = (f'HTTP/{HTTP_TYPE} 200 OK\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                    '<h1>File Uploaded</h1>')
-HTML_RESPONSE = 'HTTP/1.1 200 OK\r\nContent-Length: r1\r\nContent-Type: text/html; charset=utf-8\r\n\r\nr2'
-MOVED_RESPONSE = ('HTTP/1.1 302 Moved Temporarily\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+HTML_RESPONSE = f'HTTP/{HTTP_TYPE} 200 OK\r\nContent-Length: r1\r\nContent-Type: text/html; charset=utf-8\r\n\r\nr2'
+MOVED_RESPONSE = (f'HTTP/{HTTP_TYPE} 302 Moved Temporarily\r\nContent-Length: 22\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
                    '<h1>File moved to r1</h1>')
 VALID_PERM = ['/css', '/imgs', '/js', '/index.html', '/uploads']
 MOVED_FILES = {'./imgs/moved.jpg': './ClientFiles/test-image.jpg'}
+
 
 def main():
     # SERVER SIDE:
@@ -110,10 +113,8 @@ def main():
 
         request_cnt += 1
 
-        if req == "HTTP/1.0":
+        if req == "HTTP/1.0" or HTTP_TYPE == "1.0":
             cli.close()
-            break
-
 
 
 if __name__ == '__main__':

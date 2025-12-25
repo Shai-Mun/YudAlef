@@ -1,0 +1,445 @@
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(40) MALTO#20251214 09:40#TO:Alice#Hi#Test###
+Bob Client recv(8) GOTIT###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(46) TKALL#NUM:1#FROM:Bob#20251214 09:40#Hi#Test###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(44) MALTO#20251214 09:54#TO:Alice#Hi#Hi ALICE###
+Bob Client recv(8) GOTIT###
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(44) MALTO#20251214 09:55#TO:Alice#Hi#Hi ALICE###
+Bob Client recv(8) GOTIT###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+ Bob @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(61) MALTO#20251214 10:05#TO:Alice:Gil#Hi#Testing alice and gil###
+Bob Client recv(8) GOTIT###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(63) TKALL#NUM:1#FROM:Bob#20251214 10:05#Hi#Testing alice and gil###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Gil Client recv(8) HELLO###
+Gil Client Sent(14) OLLEH#Gil#3###
+Gil Seems Server closed after login invalid login or error 
+Gil Client closing 
+---
+
+Gil Client recv(8) HELLO###
+Gil Client Sent(15) OLLEH#Gil#33###
+Gil Client recv(63) TKALL#NUM:1#FROM:Bob#20251214 10:05#Hi#Testing alice and gil###
+Gil Client Sent(8) B_Y_E###
+Gil Client closing 
+---
+
+Gil Client recv(8) HELLO###
+Gil Client Sent(15) OLLEH#Gil#33###
+Gil Client recv(8) NOPND###
+Gil Client Sent(49) MALTO#20251214 10:06#TO:Alice#Hi #This is cool###
+Gil Client recv(8) GOTIT###
+Gil Client Sent(8) B_Y_E###
+Gil Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(52) MALTO#20251214 10:09#TO:Alice:Gil#Hi#Testing this###
+Bob Client recv(8) GOTIT###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Gil Client recv(8) HELLO###
+Gil Client Sent(15) OLLEH#Gil#33###
+Gil Client recv(54) TKALL#NUM:1#FROM:Bob#20251214 10:09#Hi#Testing this###
+Gil Client Sent(69) MALTO#20251214 10:10#TO:Alice#Hi 2#I'm testing something!cool!!!!!###
+Gil Client recv(8) GOTIT###
+Gil Client Sent(8) B_Y_E###
+Gil Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(115) TKALL#NUM:2#FROM:Bob#20251214 10:09#Hi#Testing this#FROM:Gil#20251214 10:10#Hi 2#I'm testing something!cool!!!!!###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10061] No connection could be made because the target machine actively refused it  
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10061] No connection could be made because the target machine actively refused it  
+Alice Client closing 
+---
+
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(8) NOPND###
+Bob Client Sent(67) MALTO#20251214 10:14#TO:Alice#Evil#I'm not logging this message!###
+Bob Client recv(8) GOTIT###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(73) TKALL#NUM:1#FROM:Bob#20251214 10:14#Evil#I'm not logging this message!###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Client recv(8) NOPND###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+BAlice Client recv(8) HELLO###
+BAlice Client Sent(18) OLLEH#BAlice#11###
+BAlice Seems Server closed after login invalid login or error 
+BAlice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+BAlice Client recv(8) HELLO###
+BAlice Client Sent(18) OLLEH#BAlice#11###
+BAlice Seems Server closed after login invalid login or error 
+BAlice Client closing 
+---
+
+BAlice Client recv(8) HELLO###
+BAlice Client Sent(18) OLLEH#BAlice#11###
+BAlice Seems Server closed after login invalid login or error 
+BAlice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#12###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(64) MALTO#20251214 10:21#TO:Alice:Bob:Gil#Msg A#This is message A###
+Alice Client recv(8) GOTIT###
+Alice Client Sent(58) MALTO#20251214 10:22#TO:Bob:Gil#Msg B#This is message B###
+Alice Client recv(8) GOTIT###
+Bob Client recv(8) HELLO###
+Bob Client Sent(15) OLLEH#Bob#22###
+Bob Client recv(114) TKALL#NUM:2#FROM:Alice#20251214 10:21#Msg A#This is message A#FROM:Alice#20251214 10:22#Msg B#This is message B###
+Bob Client Sent(60) MALTO#20251214 10:22#TO:Alice:Gil#Msg C#This is message C###
+Bob Client recv(8) GOTIT###
+Bob Client Sent(8) B_Y_E###
+Bob Client closing 
+---
+
+Gil Client recv(8) HELLO###
+Gil Client Sent(15) OLLEH#Gil#33###
+Gil Client recv(162) TKALL#NUM:3#FROM:Alice#20251214 10:21#Msg A#This is message A#FROM:Alice#20251214 10:22#Msg B#This is message B#FROM:Bob#20251214 10:22#Msg C#This is message C###
+Gil Client Sent(56) MALTO#20251214 10:23#TO:Alice#Msg D#This is message D###
+Gil Client recv(8) GOTIT###
+Gil Client Sent(8) B_Y_E###
+Gil Client closing 
+---
+
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(160) TKALL#NUM:3#FROM:Alice#20251214 10:21#Msg A#This is message A#FROM:Bob#20251214 10:22#Msg C#This is message C#FROM:Gil#20251214 10:23#Msg D#This is message D###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(47) MALTO#20251214 10:29#TO:SSSS#SADAS!!!!#!Blah###
+Alice @@ERROR  sock issue Didnt got GOTIT 1 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(50) MALTO#20251214 10:29#TO:sadasj#!!!!Grrr#Hii!!!!###
+Alice @@ERROR  sock issue Didnt got GOTIT 1 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(57) MALTO#20251214 10:31#TO:SANDASUHDAHU#!!!!Grrrr#Hi!!!!!###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(63) MALTO#20251214 10:33#TO:sdfjdasudhas#!!!!sdrjsdfjdfj#ssjsjs!###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(34) MALTO#20251214 10:36#TO:SSS##ss###
+Alice Client recv(8) GOTIT###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###
+Alice Client Sent(35) MALTO#20251214 10:39#TO:Alice## ###
+Alice Client recv(8) GOTIT###
+Alice Client Sent(8) B_Y_E###
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(43) TKALL#NUM:1#FROM:Alice#20251214 10:39## ###
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Seems Server closed after login invalid login or error 
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+ Alice @@ERROR 3. Socket Error[WinError 10054] An existing connection was forcibly closed by the remote host  
+Alice Client closing 
+---
+
+Alice Client recv(8) HELLO###
+Alice Client Sent(17) OLLEH#Alice#11###
+Alice Client recv(8) NOPND###

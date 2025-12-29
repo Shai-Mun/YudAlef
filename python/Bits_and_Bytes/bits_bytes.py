@@ -41,11 +41,16 @@ some_int = 5
 mask = 0xff000000
 print("mask=", mask)
 one_byte = some_int & mask
-print("one_byte=", one_byte, "   %x" % (one_byte), f"{one_byte:X}")
+print("one_byte=", one_byte, "   %x" % one_byte, f"{one_byte:X}")
 mask = 0x000000ff
 print("mask=", mask)
 one_byte2 = some_int & mask
-print("one_byte2=", one_byte2, "   %x" % (one_byte2), f"{one_byte2:X}")
+print("one_byte2=", one_byte2, "   %x" % one_byte2, f"{one_byte2:X}")
+#
+# y = 65281
+# mask = 0x0000ff00
+# x = y & mask
+# print("x=", x, f"{x:X}")
 
 print("\nQ4---------")
 print("Int By Bytes")
@@ -53,6 +58,7 @@ mask = 0x000000ff
 x = 0xd3a4a506
 print("x=", x, " ", "%08X" % x)
 for i in range(4):
+
     print("  %02X " % ((x & mask) >> (i * 8)))
     mask <<= 8
 

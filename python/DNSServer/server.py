@@ -36,7 +36,7 @@ def dns_reply(fields):
     reply += struct.pack('H', socket.htons(fields[3]))[0]  # id
     reply += struct.pack('H', socket.htons(fields[4]))[0]  # id
 
-
+# hi
     reply += socket.htons(struct.pack('H', fields[1] | 0x8080)[0])  # flags
     reply += socket.htons(struct.pack('H', fields[2])[0])  # q count
     reply += socket.htons(struct.pack('H', fields[2])[0])  # a count

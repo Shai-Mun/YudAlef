@@ -1,6 +1,7 @@
 import socket
 import struct
 
+
 DNS_SERVER_IP = '127.0.0.1'
 DNS_SERVER_PORT = 53
 DEFAULT_BUFFER_SIZE = 1024
@@ -27,25 +28,39 @@ def handle_domain(data):
     return s[:-1]
 
 
+def build_ip(ip):
+    nums = ip.decode().split('.')
+    b_ip = b''
+    for n in nums:
+        b_ip += struct.pack('B', int(n))
+
+    return b_ip
+
+
 def dns_reply(fields):
     reply = b''
-    reply += struct.pack('H', socket.htons(fields[0]))[0]  # id
-    reply += struct.pack('H', socket.htons(fields[1]))[0]  # id
-    reply += struct.pack('H', socket.htons(fields[2]))[0]  # id
-    reply += struct.pack('H', socket.htons(fields[2]))[0]  # id
-    reply += struct.pack('H', socket.htons(fields[3]))[0]  # id
-    reply += struct.pack('H', socket.htons(fields[4]))[0]  # id
+    reply += struct.pack('H', socket.htons(fields[0]))  # id
+    reply += struct.pack('H', socket.htons(fields[1]) | 0x8080)  # flags
+    reply += struct.pack('H', socket.htons(fields[2]))  # q count
+    reply += struct.pack('H', socket.htons(fields[2]))  # a count
+    reply += struct.pack('H', socket.htons(fields[3]))  # auth
+    reply += struct.pack('H', socket.htons(fields[4]))  # add
 
-# hi
-    reply += socket.htons(struct.pack('H', fields[1] | 0x8080)[0])  # flags
-    reply += socket.htons(struct.pack('H', fields[2])[0])  # q count
-    reply += socket.htons(struct.pack('H', fields[2])[0])  # a count
-    reply += socket.htons(struct.pack('H', fields[3])[0])  # auth
-    reply += socket.htons(struct.pack('H', fields[4])[0])  # add
+    reply += struct.pack(f'{len(fields[5])}s', fields[5])  # domain
+    reply += struct.pack('H', socket.htons(fields[6]))  # type
+    reply += struct.pack('H', socket.htons(fields[7]))  # class
+
+    reply += b'\xc0\x0c' # offset
+    reply += struct.pack('H', socket.htons(fields[6]))  # type
+    reply += struct.pack('H', socket.htons(fields[7]))  # class
+    reply += b'\x4f\x00\x00\x00' # TTL
+    reply += struct.pack('H', socket.htons(len(fields[8])))
+    reply += build_ip(fields[8])
+
+    return reply
 
 
 def dns_handler(data, address):
-
     if b'shai' in data:
         msg_id = socket.ntohs(struct.unpack('H', data[:2])[0])
         msg_flags = socket.ntohs(struct.unpack('H', data[2:4])[0])
@@ -55,18 +70,23 @@ def dns_handler(data, address):
         msg_add = socket.ntohs(struct.unpack('H', data[10:12])[0])
 
         start_domain = 12
-        msg_domain = handle_domain(data[start_domain:data[start_domain:].find(b'0')])
-        end_domain = start_domain + len(msg_domain) + 1
+        user_domain = handle_domain(data[start_domain:data[start_domain:].find(b'0')])
+        end_domain = start_domain + len(user_domain) + 2 # 1 for the size byte, 1 for the end byte
 
+        msg_domain = struct.unpack(f'{len(user_domain) + 2}s', data[start_domain: end_domain])[0]
         msg_type = socket.ntohs(struct.unpack('H', data[end_domain: end_domain + 2])[0])
-        msg_class = data[end_domain + 2: end_domain + 4]
+        msg_class = socket.ntohs(struct.unpack('H', data[end_domain + 2: end_domain + 4])[0])
 
-        print(msg_domain, end_domain, msg_type, msg_class)
-        start_domain = end_domain + 4
+        print(user_domain)
+        return dns_reply([msg_id, msg_flags, msg_q_count, msg_auth, msg_add, msg_domain, msg_type, msg_class, address[0].encode()])
+    else:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(2)
 
-
-        print(msg_id, msg_flags, msg_q_count, msg_a_count, msg_auth, msg_add)
-        return dns_reply([msg_id, msg_flags, msg_q_count, msg_auth, msg_add, msg_domain, msg_type, msg_class])
+        sock.sendto(data, ('8.8.8.8', 53))
+        ret, _ = sock.recvfrom(4096)
+        sock.close()
+        return ret
 
 
 def dns_udp_server(ip, port):
@@ -82,7 +102,8 @@ def dns_udp_server(ip, port):
     while True:
         try:
             data, addr = sock.recvfrom(DEFAULT_BUFFER_SIZE)
-            dns_handler(data, addr)
+            msg = dns_handler(data, addr)
+            sock.sendto(msg, addr)
         except Exception as ex:
             print(f"Client exception! {str(ex)}")
 

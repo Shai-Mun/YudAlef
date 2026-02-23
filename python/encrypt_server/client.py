@@ -271,7 +271,7 @@ class App(tk.Tk):
     #  Button stubs – wire up your logic here
     # ─────────────────────────────────────────
     def _on_connect(self):
-        # TODO: open socket connection to host/port
+        # TOD: open socket connection to host/port
         host = self.host_entry.get().strip()
         port = self.port_entry.get().strip()
         self.log_box.insert("end", f"[-->] Connecting to {host}:{port} ...")
@@ -291,14 +291,14 @@ class App(tk.Tk):
             print(traceback.format_exc())
 
     def _on_login(self):
-        # TODO: send LOGIN command to server
+        # TOD: send LOGIN command to server
         username = self.login_user.get().strip()
         password = self.login_pass.get()
         self.log_box.insert("end", f"[-->] LOGIN request for: {username}")
         self.log_box.see("end")
 
     def _on_signup(self):
-        # TODO: send SIGNUP command to server
+        # TOD: send SIGNUP command to server
         username = self.su_user.get().strip()
         self.log_box.insert("end", f"[-->] SIGNUP request for: {username}")
         self.log_box.see("end")
@@ -320,7 +320,7 @@ class App(tk.Tk):
 
 
     def _on_forgot(self):
-        # TODO: send FORGOT_PASSWORD command to server
+        # TOD: send FORGOT_PASSWORD command to server
         username = self.fp_user.get().strip()
         self.log_box.insert("end", f"[-->] FORGOT_PASSWORD request for: {username}")
         self.log_box.see("end")

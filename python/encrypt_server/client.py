@@ -303,21 +303,14 @@ class App(tk.Tk):
         self.log_box.insert("end", f"[-->] SIGNUP request for: {username}")
         self.log_box.see("end")
 
-        user_data = {
-            "type": "SIGNUP",
-            "payload": {
-                "username": self.su_user.get(),
-                "password": self.su_pass.get(),
-                "first_name": self.su_name.get(),
-                "last_name": self.su_last.get(),
-                "email": self.su_email.get(),
-                "phone": self.su_phone.get()
-            }
-        }
-        json_string = json.dumps(user_data)
-        message_bytes = json_string.encode('utf-8')
-        send_with_size(self.cli_sock, message_bytes)
-
+        msg = "SIGNUP|"
+        msg += self.su_user.get() + "|"
+        msg += self.su_pass.get() + "|"
+        msg += self.su_name.get() + "|"
+        msg += self.su_last.get() + "|"
+        msg += self.su_email.get() + "|"
+        msg += self.su_phone.get()
+        send_with_size(self.cli_sock, msg.encode())
 
     def _on_forgot(self):
         # TOD: send FORGOT_PASSWORD command to server
@@ -328,7 +321,7 @@ class App(tk.Tk):
     def _listen_to_server(self):
         while True:
             try:
-                data = recv_by_size(self.cli_sock)
+                data = recv_by_size(self.cli_sock).decode()
                 self.log_box.insert("end", f"[<--] {data}")
 
             except Exception:

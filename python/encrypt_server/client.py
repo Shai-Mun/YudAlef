@@ -271,7 +271,6 @@ class App(tk.Tk):
     #  Button stubs – wire up your logic here
     # ─────────────────────────────────────────
     def _on_connect(self):
-        # TOD: open socket connection to host/port
         host = self.host_entry.get().strip()
         port = self.port_entry.get().strip()
         self.log_box.insert("end", f"[-->] Connecting to {host}:{port} ...")
@@ -291,11 +290,17 @@ class App(tk.Tk):
             print(traceback.format_exc())
 
     def _on_login(self):
-        # TOD: send LOGIN command to server
         username = self.login_user.get().strip()
         password = self.login_pass.get()
         self.log_box.insert("end", f"[-->] LOGIN request for: {username}")
         self.log_box.see("end")
+
+        # Shai_M hi06
+        msg = "LOG_IN" + "~"
+        msg += username + "~"
+        msg += password + "~"
+        send_with_size(self.cli_sock, msg.encode())
+
 
     def _on_signup(self):
         # TOD: send SIGNUP command to server
@@ -303,12 +308,12 @@ class App(tk.Tk):
         self.log_box.insert("end", f"[-->] SIGNUP request for: {username}")
         self.log_box.see("end")
 
-        msg = "SIGNUP|"
-        msg += self.su_user.get() + "|"
-        msg += self.su_pass.get() + "|"
-        msg += self.su_name.get() + "|"
-        msg += self.su_last.get() + "|"
-        msg += self.su_email.get() + "|"
+        msg = "SIGNUP" + "~"
+        msg += username + "~"
+        msg += self.su_pass.get() + "~"
+        msg += self.su_name.get() + "~"
+        msg += self.su_last.get() + "~"
+        msg += self.su_email.get() + "~"
         msg += self.su_phone.get()
         send_with_size(self.cli_sock, msg.encode())
 

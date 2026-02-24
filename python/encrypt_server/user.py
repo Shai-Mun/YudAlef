@@ -13,6 +13,9 @@ class User:
         self.hashpass = ""
         self.salt = ""
 
+    def __str__(self):
+        return super().__str__()
+
     @staticmethod
     def hash_salt_passwd(passwd, salt=None):
         if not salt:

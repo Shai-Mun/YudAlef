@@ -4,13 +4,12 @@
   Pure UI layout – no networking logic included
 =============================================================
 """
-
+import random
 import tkinter as tk
 from tkinter import ttk
 import socket
 import traceback
 import threading
-import json
 
 from tcp_by_size import send_with_size, recv_by_size
 
@@ -46,6 +45,7 @@ def labeled_entry(parent, label: str, show: str = "") -> tuple[tk.Frame, tk.Entr
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.crypto_var = tk.StringVar(value="DPH")
         self.title("Encrypted Server – Phase A")
         self.geometry("860x620")
         self.configure(bg=BG)
@@ -82,45 +82,44 @@ class App(tk.Tk):
     # ── Connection panel ──────────────────────
     def _build_connection_panel(self, parent):
         frame = tk.LabelFrame(parent, text=" Server Connection ",
-                               bg=SURFACE, fg=ACCENT,
-                               font=("Segoe UI", 10, "bold"),
-                               bd=2, relief="groove")
+                              bg=SURFACE, fg=ACCENT,
+                              font=("Segoe UI", 10, "bold"),
+                              bd=2, relief="groove")
         frame.pack(fill="x", pady=(0, 10))
 
-        row = tk.Frame(frame, bg=SURFACE)
-        row.pack(fill="x", padx=8, pady=8)
+        # שורה ראשונה: Host ו-Port
+        row1 = tk.Frame(frame, bg=SURFACE)
+        row1.pack(fill="x", padx=8, pady=4)
 
-        # Host field
-        tk.Label(row, text="Host:", bg=SURFACE, fg=TEXT,
-                 font=("Segoe UI", 10)).pack(side="left")
-        self.host_entry = tk.Entry(row, width=14, bg="#1a1a2e", fg=TEXT,
-                                    insertbackground=TEXT, relief="flat",
-                                    font=("Segoe UI", 10))
+        tk.Label(row1, text="Host:", bg=SURFACE, fg=TEXT, font=("Segoe UI", 10)).pack(side="left")
+        self.host_entry = tk.Entry(row1, width=14, bg="#1a1a2e", fg=TEXT, insertbackground=TEXT, relief="flat")
         self.host_entry.insert(0, "127.0.0.1")
         self.host_entry.pack(side="left", padx=4)
 
-        # Port field
-        tk.Label(row, text="Port:", bg=SURFACE, fg=TEXT,
-                 font=("Segoe UI", 10)).pack(side="left")
-        self.port_entry = tk.Entry(row, width=6, bg="#1a1a2e", fg=TEXT,
-                                    insertbackground=TEXT, relief="flat",
-                                    font=("Segoe UI", 10))
+        tk.Label(row1, text="Port:", bg=SURFACE, fg=TEXT, font=("Segoe UI", 10)).pack(side="left")
+        self.port_entry = tk.Entry(row1, width=6, bg="#1a1a2e", fg=TEXT, insertbackground=TEXT, relief="flat")
         self.port_entry.insert(0, "5555")
         self.port_entry.pack(side="left", padx=4)
 
-        # Connect button
-        self.btn_connect = tk.Button(row, text="Connect",
-                                      command=self._on_connect,
-                                      bg=ACCENT, fg="white", relief="flat",
-                                      font=("Segoe UI", 10, "bold"),
-                                      cursor="hand2", padx=12)
+        self.btn_connect = tk.Button(row1, text="Connect", command=self._on_connect,
+                                     bg=ACCENT, fg="white", font=("Segoe UI", 10, "bold"), padx=12)
         self.btn_connect.pack(side="left", padx=8)
 
-        # Status label
-        self.status_lbl = tk.Label(row, text="● Not Connected",
-                                    bg=SURFACE, fg=ERROR,
-                                    font=("Segoe UI", 10, "bold"))
+        self.status_lbl = tk.Label(row1, text="● Not Connected", bg=SURFACE, fg=ERROR, font=("Segoe UI", 10, "bold"))
         self.status_lbl.pack(side="left")
+
+        # שורה שנייה: בחירת שיטת הצפנה (Key Exchange)
+        row2 = tk.Frame(frame, bg=SURFACE)
+        row2.pack(fill="x", padx=8, pady=(0, 8))
+
+        tk.Label(row2, text="Method:", bg=SURFACE, fg=TEXT, font=("Segoe UI", 10)).pack(side="left")
+
+        # כפתורי רדיו ל-DPH ו-RSA
+        tk.Radiobutton(row2, text="DPH", variable=self.crypto_var, value="DPH",
+                       bg=SURFACE, fg=TEXT, selectcolor=BG, activebackground=SURFACE).pack(side="left", padx=10)
+        tk.Radiobutton(row2, text="RSA", variable=self.crypto_var, value="RSA",
+                       bg=SURFACE, fg=TEXT, selectcolor=BG, activebackground=SURFACE,
+                       state="disabled").pack(side="left")  # RSA מושבת כרגע לפי הדרישות
 
     # ── Tabs ──────────────────────────────────
     def _build_tabs(self, parent):
@@ -151,17 +150,25 @@ class App(tk.Tk):
         tk.Label(inner, text="Sign In to Your Account", bg=SURFACE, fg=TEXT,
                  font=("Segoe UI", 13, "bold")).pack(pady=(0, 14))
 
+        # שדות קלט למשתמש וסיסמה
         f1, self.login_user = labeled_entry(inner, "Username")
         f1.pack(fill="x", pady=4)
 
         f2, self.login_pass = labeled_entry(inner, "Password", show="●")
         f2.pack(fill="x", pady=4)
 
-        tk.Button(inner, text="Login  →",
-                  command=self._on_login,
-                  bg=ACCENT, fg="white", relief="flat",
-                  font=("Segoe UI", 11, "bold"),
-                  cursor="hand2", padx=20, pady=6).pack(pady=14)
+        # כפתור Login - מוגדר כ-disabled ומשתנה ל-self.btn_login
+        self.btn_login = tk.Button(inner, text="Login  →",
+                                   command=self._on_login,
+                                   state="disabled",  # כבוי עד לסיום ה-DPH
+                                   bg=ACCENT, fg="white", relief="flat",
+                                   font=("Segoe UI", 11, "bold"),
+                                   cursor="hand2", padx=20, pady=6)
+        self.btn_login.pack(pady=14)
+
+        # קישור לשכחתי סיסמה
+        tk.Label(inner, text="Forgot password?", bg=SURFACE, fg=ACCENT,
+                 font=("Segoe UI", 9, "underline"), cursor="hand2").pack()
 
     # ── Sign Up tab ───────────────────────────
     def _build_signup_tab(self):
@@ -283,6 +290,21 @@ class App(tk.Tk):
             self.status_lbl.config(text="● Connected", fg=SUCCESS)
             self.btn_connect.config(state="disabled", bg=MUTED)
 
+            parameters = recv_by_size(sock).decode()
+            parts = parameters.split(',')
+            p = int(parts[0])
+            g = int(parts[1])  # alpha
+
+            y = random.randint(2, p - 2)
+            b = pow(g, y, p)
+            send_with_size(sock, str(b).encode())
+
+            a = int(recv_by_size(sock).decode())
+
+            k = pow(a, y, p)
+            print(f"the key is: {k}")
+
+            self.btn_login.config(state="normal")
             listener = threading.Thread(target=self._listen_to_server, daemon=True)
             listener.start()
 
@@ -317,11 +339,22 @@ class App(tk.Tk):
         msg += self.su_phone.get()
         send_with_size(self.cli_sock, msg.encode())
 
+        self._open_otp_window(username, "sign")
+
     def _on_forgot(self):
         # TOD: send FORGOT_PASSWORD command to server
         username = self.fp_user.get().strip()
         self.log_box.insert("end", f"[-->] FORGOT_PASSWORD request for: {username}")
         self.log_box.see("end")
+
+        msg = "FORGOT" + "~"
+        msg += username + "~"
+        msg += self.fp_email.get() + "~"
+        msg += self.fp_pass.get()
+        send_with_size(self.cli_sock, msg.encode())
+
+        self._open_otp_window(username, "forg")
+
 
     def _listen_to_server(self):
         while True:
@@ -332,6 +365,33 @@ class App(tk.Tk):
             except Exception:
                 print(traceback.format_exc())
                 break
+
+    def _open_otp_window(self, username, type):
+        # יצירת חלון חדש מעל החלון הראשי
+        otp_win = tk.Toplevel(self)
+        otp_win.title("Email Verification")
+        otp_win.geometry("300x200")
+        otp_win.configure(bg=SURFACE)
+
+        tk.Label(otp_win, text=f"Enter code sent to email:",
+                 bg=SURFACE, fg=TEXT, font=("Segoe UI", 10)).pack(pady=10)
+
+        otp_entry = tk.Entry(otp_win, bg="#1a1a2e", fg=TEXT, font=("Segoe UI", 12))
+        otp_entry.pack(pady=5, padx=20)
+
+        def submit_code():
+            code = otp_entry.get().strip()
+            # שליחת הקוד לשרת לאימות (נממש את הפרוטוקול בהמשך)
+            if type == "sign":
+                num = 1
+            elif type == "forg":
+                num = 2
+            msg = f"VERIFY{num}~{username}~{code}"
+            send_with_size(self.cli_sock, msg.encode())
+            otp_win.destroy()
+
+        tk.Button(otp_win, text="Verify", command=submit_code,
+                  bg=ACCENT, fg="white", font=("Segoe UI", 10, "bold")).pack(pady=20)
 
 # ─────────────────────────────────────────────
 if __name__ == "__main__":

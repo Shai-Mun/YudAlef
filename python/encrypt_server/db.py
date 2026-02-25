@@ -20,3 +20,8 @@ class Database:
 
         with open('users.pk1', 'wb') as f:
             pickle.dump(self.users, f)
+
+    def change_pass(self, username, new_pass):
+        salt, hashed_password = self.users[username].hash_salt_passwd(new_pass)
+        self.users[username].hashed_password = hashed_password
+        self.users[username].salt = salt

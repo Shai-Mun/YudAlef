@@ -1,34 +1,5 @@
 import pygame
 import math
-from btd.Maps import get_ratios
-
-track_ratios = []
-
-PATH = []
-INVERSE_PATH = []
-def inverse():
-    return [(1 - r[0], 1 - r[1]) for r in track_ratios]
-
-def update_path(width, height, shop_width):
-    global PATH, INVERSE_PATH, track_ratios
-
-    track_ratios = get_ratios("Galili")
-    PATH = [pygame.Vector2(width*r[0] + shop_width, height*r[1]) for r in track_ratios]
-    INVERSE_PATH = [pygame.Vector2(width*r[0] + width + shop_width, height*r[1]) for r in inverse()]
-
-def update_loc(bloons_list, old_size, new_size):
-    for bloon in bloons_list:
-        ratio = bloon.pos.x / old_size[0]
-        bloon.pos.x = new_size[0] * ratio
-        ratio = bloon.pos.y / old_size[1]
-        bloon.pos.y = new_size[1] * ratio
-
-        match bloon.side:
-            case 1:
-                bloon.path = PATH
-            case 2:
-                bloon.path = INVERSE_PATH
-
 
 PINK = (255, 128, 255)
 DEF_SPEED = 70
@@ -45,7 +16,7 @@ class Bloon(pygame.sprite.Sprite):
         "red": {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
     }
 
-    def __init__(self, color, side):
+    def __init__(self, color, side, path_list):
         super().__init__()
         stats = self.BLOON_DATA.get(color.lower(), self.DEFAULT_BLOON)
 
@@ -54,15 +25,8 @@ class Bloon(pygame.sprite.Sprite):
         self.image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
         self.original_image = self.image
         self.side = side
-
-        # side: 1 - p1 side, 2 - p2 side
-        match self.side:
-            case 1:
-                self.path = PATH
-                self.pos = pygame.Vector2(PATH[0])
-            case 2:
-                self.path = INVERSE_PATH
-                self.pos = pygame.Vector2(INVERSE_PATH[0])
+        self.path = path_list
+        self.pos = pygame.Vector2(path_list[0])
 
         self.target_node = 1
         self.angle = 0
@@ -72,8 +36,7 @@ class Bloon(pygame.sprite.Sprite):
 
         self.distance = 0
 
-
-    def update(self, dt):
+    def move(self, dt):
         if self.target_node < len(self.path):
             target = self.path[self.target_node]
             direction = target - self.pos
@@ -93,14 +56,13 @@ class Bloon(pygame.sprite.Sprite):
                 else:
                     self.pos = pygame.Vector2(target)
                     self.target_node += 1
-                    # self.hit()
 
             # self.image = pygame.transform.rotate(self.original_image, self.angle)
             self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
 
             self.image.set_colorkey(PINK)
             self.distance += move_distance
-            print(self.pos.x)
+
 
     def hit(self):
         child_type = self.BLOON_DATA[self.type]["child"]

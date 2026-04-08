@@ -3,7 +3,7 @@ MONKEY_DATA = {
         "base": {
             "cost": 200,
             "range": 150,
-            "fire_rate": 800,  # ms
+            "fire_rate": 940,  # ms
             "image": "dart_base.png",
             "projectile": "dart"
         },

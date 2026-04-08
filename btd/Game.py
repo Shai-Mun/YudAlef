@@ -1,29 +1,19 @@
-import pygame, sys, os
+import os, random
 from pygame import VIDEORESIZE, KEYDOWN
-
 from Bloon import *
+from Maps import *
 
 pygame.init()
 pygame.display.set_caption("BTD Battles")
 
-info = pygame.display.Info()
-WINDOW_WIDTH, WINDOW_HEIGHT = info.current_w, info.current_h
-size = (WINDOW_WIDTH, WINDOW_HEIGHT)
-screen = pygame.display.set_mode(size, pygame.NOFRAME)
 fullscreen = True
-
-map = pygame.image.load(f'assets/maps/background.png')
-screen.blit(map, (0, 0))
+game_map = Maps("galili")
 
 clock = pygame.time.Clock()
 REFRESH_RATE = 60
-
-LEFT = 1
-SCROLL = 2
-RIGHT = 3
+frame_count = 0
 
 finish = False
-bloon = None
 
 bloons_list = pygame.sprite.Group()
 
@@ -33,25 +23,27 @@ while not finish:
             finish = True
         if event.type == VIDEORESIZE:
             if not fullscreen:
-                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                game_map.update_size(bloons_list, fullscreen, event)
+
         if event.type == KEYDOWN:
             if event.key == pygame.K_f:
                 fullscreen = not fullscreen
-                if fullscreen:
-                    screen = pygame.display.set_mode(size, pygame.NOFRAME)
-                if not fullscreen:
-                    os.environ['SDL_VIDEO_WINDOW_POS'] = "center"
-                    screen = pygame.display.set_mode((1080, 700), pygame.RESIZABLE)
+                game_map.update_size(bloons_list, fullscreen)
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
-            balloon = Bloon("black")
-            bloons_list.add(balloon)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            colors = {1: "red", 2: "blue", 3: "green", 4: "yellow", 5: "pink", 6: "black"}
+            ran_color = random.randint(1, 6)
+            match int(event.button):
+                case 1: # LEFT
+                    bloon = Bloon(colors[ran_color], 1)
+                case 3: # RIGHT
+                    bloon = Bloon(colors[ran_color], 2)
+                case 2: # SCROLL
+                    bloon = Bloon(colors[ran_color], 1)
+                    bloons_list.add(bloon)
+                    bloon = Bloon(colors[ran_color], 2)
+            bloons_list.add(bloon)
 
-    screen.blit(map, (0, 0))
-    for bloon in bloons_list:
-        bloon.update()
-    bloons_list.draw(screen)
-    pygame.display.flip()
-    clock.tick(REFRESH_RATE)
-
+    dt = clock.tick(REFRESH_RATE)
+    game_map.draw(bloons_list, dt)
 pygame.quit()

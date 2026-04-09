@@ -75,6 +75,7 @@ class Bloon(pygame.sprite.Sprite):
 
             self.image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
             self.original_image = self.image
+            self.image.set_colorkey(PINK)
             old_center = self.rect.center
             self.rect = self.image.get_rect()
             self.rect.center = old_center

@@ -3,7 +3,6 @@ from Bloon import *
 from Monkey import *
 
 PINK = (255, 128, 255)
-GUI = pygame.image.load('assets/gui.png')
 
 track_ratios = []
 
@@ -43,33 +42,32 @@ def update_path(width, height, shop_width):
     PATHS["PATH"] = [pygame.Vector2(width*r[0] + shop_width, height*r[1]) for r in track_ratios]
     PATHS["INVERSE_PATH"] = [pygame.Vector2(width*r[0] + width + shop_width, height*r[1]) for r in inverse()]
 
-def update_loc(bloons_list, monkeys_list, old_size, new_size):
-    for bloon in bloons_list:
-        ratio = bloon.pos.x / old_size[0]
-        bloon.pos.x = new_size[0] * ratio
-        ratio = bloon.pos.y / old_size[1]
-        bloon.pos.y = new_size[1] * ratio
 
+def update_loc(bloons_list, monkeys_list, new_size):
+    for bloon in bloons_list:
         match bloon.side:
             case 1:
                 bloon.path = PATHS["PATH"]
             case 2:
                 bloon.path = PATHS["INVERSE_PATH"]
+        bloon.update_visuals(new_size)
 
     for monkey in monkeys_list:
-        ratio = monkey.pos.x / old_size[0]
-        monkey.pos.x = new_size[0] * ratio
-        ratio = monkey.pos.y / old_size[1]
-        monkey.pos.y = new_size[1] * ratio
-        monkey.rect = monkey.image.get_rect(center=(round(monkey.pos.x), round(monkey.pos.y)))
-
+        monkey.update_visuals(new_size)
 
 class Maps:
-
     def __init__(self, track):
         self.ratios = get_ratios(track)
         self.bg = pygame.image.load(f'assets/maps/{track}.png')
+
+        # UI Settings
+        self.pillar_width = 15
+        self.border_thickness = 8
+        self.ui_color = (150, 94, 63)  # Dark Grey for borders/pillar
+        self.shop_color = (183, 117, 80)  # Slightly darker for shop
+
         self.shop_width = pygame.display.Info().current_w * 0.104
+
         self.size = (pygame.display.Info().current_w - self.shop_width, pygame.display.Info().current_h)
         self.screen = pygame.display.set_mode((self.size[0] + self.shop_width, self.size[1]), pygame.NOFRAME)
         self.bg_scaled = pygame.transform.scale(self.bg, self.size)
@@ -79,50 +77,65 @@ class Maps:
 
 
     def update_size(self, bloons_list, monkeys_list, fullscreen, event = None):
-        global GUI
 
         if not fullscreen:
             if event is not None:
                 self.shop_width = event.w * 0.104
 
                 update_path((event.w - self.shop_width) / 2, event.h, self.shop_width)
-                update_loc(bloons_list, monkeys_list, (self.screen.get_width(), self.screen.get_height())
-                           , (event.w, event.h))
+                update_loc(bloons_list, monkeys_list, (event.w, event.h))
 
                 self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                 self.bg_scaled = pygame.transform.scale(self.bg, (event.w - self.shop_width, event.h))
-                GUI = pygame.transform.scale(GUI, (event.w, event.h))
 
             else:
                 self.shop_width = 1080 * 0.104
 
                 update_path((1080 - self.shop_width) / 2, 700, self.shop_width)
-                update_loc(bloons_list, monkeys_list, (self.screen.get_width(), self.screen.get_height())
-                                , (1080, 700))
+                update_loc(bloons_list, monkeys_list, (1080, 700))
 
                 os.environ['SDL_VIDEO_WINDOW_POS'] = "center"
                 self.screen = pygame.display.set_mode((1080, 700), pygame.RESIZABLE)
                 self.bg_scaled = pygame.transform.scale(self.bg, (1080 - self.shop_width, 700))
-                GUI = pygame.transform.scale(GUI, (1080, 700))
 
         else:
             self.shop_width = 1960 * 0.104
 
             update_path(self.size[0] / 2, self.size[1], self.shop_width)
-            update_loc(bloons_list, monkeys_list, (self.screen.get_width(), self.screen.get_height())
-                       , (self.size[0] + self.shop_width, self.size[1]))
+            update_loc(bloons_list, monkeys_list, (self.size[0] + self.shop_width, self.size[1]))
 
             self.screen = pygame.display.set_mode((self.size[0] + self.shop_width, self.size[1]), pygame.NOFRAME)
             self.bg_scaled = pygame.transform.scale(self.bg, self.size)
-            GUI = pygame.transform.scale(GUI, (self.size[0] + self.shop_width, self.size[1]))
+
+
+    def draw_ui(self):
+        """Draws the Shop background, Pillar, and Screen Borders."""
+        w, h = self.screen.get_size()
+
+        # 1. Shop Background (Left side)
+        pygame.draw.rect(self.screen, self.shop_color, (0, 0, self.shop_width, h))
+
+        # 2. Central Pillar (Splits the two maps)
+        # The maps start after shop_width. The pillar is in the middle of the remaining space.
+        map_area_center = self.shop_width + (w - self.shop_width) / 2
+        pillar_x = map_area_center - (self.pillar_width / 2)
+        pygame.draw.rect(self.screen, self.ui_color, (pillar_x, 0, self.pillar_width, h))
+
+        # 3. Outer Borders
+        # Top
+        pygame.draw.rect(self.screen, self.ui_color, (0, 0, w, self.border_thickness))
+        # Bottom
+        pygame.draw.rect(self.screen, self.ui_color, (0, h - self.border_thickness, w, self.border_thickness))
+        # Right
+        pygame.draw.rect(self.screen, self.ui_color, (w - self.border_thickness, 0, self.border_thickness, h))
+        # Divider (Between Shop and Map)
+        pygame.draw.rect(self.screen, self.ui_color, (self.shop_width - 2, 0, 4, h))
+
 
     def draw(self, bloons_list, monkeys_list, dt):
-        global GUI
 
         self.screen.blit(self.bg_scaled, (self.shop_width, 0))
-        GUI.set_colorkey(PINK)
-        self.screen.blit(GUI, (0, 0))
-
+        self.draw_ui()
         bloons_list.draw(self.screen)
         monkeys_list.draw(self.screen)
         pygame.display.flip()

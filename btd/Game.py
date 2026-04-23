@@ -32,22 +32,20 @@ while not finish:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             colors = {1: "red", 2: "blue", 3: "green", 4: "yellow", 5: "pink", 6: "black"}
-            ran_color = random.randint(1, 6)
+            ran_color = random.randint(5, 5)
             match int(event.button):
                 case 1: # LEFT
                     # bloon = Bloon(colors[ran_color], 1, PATHS["PATH"])
-                    mouse_point = pygame.mouse.get_pos()
-                    monkey = Monkey("dart_monkey", mouse_point)
+                    mouses_x, mouses_y = pygame.mouse.get_pos()
+                    relative_mouse = (mouses_x / game_map.screen.get_width(), mouses_y / game_map.screen.get_height())
+                    monkey = Monkey("dart_monkey", relative_mouse)
                     monkeys_list.add(monkey)
 
-                case 3: # RIGHT
-                    bloon = Bloon(colors[ran_color], 2, PATHS["INVERSE_PATH"])
                 case 2: # SCROLL
                     bloon = Bloon(colors[ran_color], 1, PATHS["PATH"])
                     bloons_list.add(bloon)
                     bloon = Bloon(colors[ran_color], 2, PATHS["INVERSE_PATH"])
-            if bloon is not None:
-                bloons_list.add(bloon)
+                    bloons_list.add(bloon)
 
     dt = clock.tick(REFRESH_RATE)
     current_time = pygame.time.get_ticks()

@@ -1,21 +1,32 @@
 import pygame
 import math
-from Upgrades import MONKEY_DATA
+from Databases import MONKEY_DATA
 
 PINK = (255, 128, 255)
+
+def upgrade_menu(monkeys_list, pos):
+    for monkey in monkeys_list:
+        if monkey.rect.collidepoint(pos):
+            return monkey
+    return None
+
 
 class Monkey(pygame.sprite.Sprite):
     def __init__(self, m_type, r_pos):
         super().__init__()
         stats = MONKEY_DATA[m_type]['base']
 
+        self.type = m_type
         self.cost = stats['cost']
         self.range = stats['range']
+        self.pierce = stats['pierce']
         self.fire_rate = stats['fire_rate']
-        self.image = pygame.image.load(f"assets/monkeys/{stats['image']}").convert()
+        self.image = pygame.image.load(f"assets/monkeys/{m_type}/{stats['image']}").convert()
         self.sized_image = self.image
         self.original_image = self.image
         self.image.set_colorkey(PINK)
+
+        self.paths = ['_', 0, 0]
 
         self.projectile = stats['projectile']
         self.last_shot_time = 0
@@ -66,4 +77,14 @@ class Monkey(pygame.sprite.Sprite):
                     max_distance = bloon.distance
                     target = bloon
         return target
+
+    def upgrade(self, upgrade):
+        print(upgrade)
+        for key in upgrade:
+            if key != 'name':
+                if key == 'cost':
+                    self.cost = upgrade[key]
+                else:
+                    # This dynamically sets the attribute named after whatever is in 'key'
+                    setattr(self, key, upgrade[key] + getattr(self, key))
 

@@ -1,8 +1,21 @@
+BLOON_CONFIG = {
+    "bloon_0": {"color": "red", "count": 8, "load_time": 800},  # grouped
+    "bloon_1": {"color": "blue", "count": 6, "load_time": 1000},
+    "bloon_2": {"color": "blue", "count": 6, "load_time": 600},  # grouped
+    "bloon_3": {"color": "pink", "count": 3, "load_time": 1000},
+    "bloon_4": {"color": "green", "count": 5, "load_time": 500},
+    "bloon_5": {"color": "black", "count": 3, "load_time": 1000},
+    "bloon_6": {"color": "yellow", "count": 5, "load_time": 250},
+}
+
+
 MONKEY_DATA = {
     "dart_monkey": {
+        "image": 'Dart Monkey.png',
         "base": {
             "cost": 200,
             "range": 150,
+            "pierce": 1,
             "fire_rate": 940,  # ms
             "image": "dart_base.png",
             "projectile": "dart"

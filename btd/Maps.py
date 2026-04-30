@@ -107,36 +107,9 @@ class Maps:
             self.screen = pygame.display.set_mode((self.size[0] + self.shop_width, self.size[1]), pygame.NOFRAME)
             self.bg_scaled = pygame.transform.scale(self.bg, self.size)
 
-
-    def draw_ui(self):
-        """Draws the Shop background, Pillar, and Screen Borders."""
-        w, h = self.screen.get_size()
-
-        # 1. Shop Background (Left side)
-        pygame.draw.rect(self.screen, self.shop_color, (0, 0, self.shop_width, h))
-
-        # 2. Central Pillar (Splits the two maps)
-        # The maps start after shop_width. The pillar is in the middle of the remaining space.
-        map_area_center = self.shop_width + (w - self.shop_width) / 2
-        pillar_x = map_area_center - (self.pillar_width / 2)
-        pygame.draw.rect(self.screen, self.ui_color, (pillar_x, 0, self.pillar_width, h))
-
-        # 3. Outer Borders
-        # Top
-        pygame.draw.rect(self.screen, self.ui_color, (0, 0, w, self.border_thickness))
-        # Bottom
-        pygame.draw.rect(self.screen, self.ui_color, (0, h - self.border_thickness, w, self.border_thickness))
-        # Right
-        pygame.draw.rect(self.screen, self.ui_color, (w - self.border_thickness, 0, self.border_thickness, h))
-        # Divider (Between Shop and Map)
-        pygame.draw.rect(self.screen, self.ui_color, (self.shop_width - 2, 0, 4, h))
-
-
     def draw(self, bloons_list, monkeys_list, dt):
 
         self.screen.blit(self.bg_scaled, (self.shop_width, 0))
-        self.draw_ui()
         bloons_list.draw(self.screen)
         monkeys_list.draw(self.screen)
-        pygame.display.flip()
 

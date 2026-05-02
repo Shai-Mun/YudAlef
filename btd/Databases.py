@@ -22,16 +22,16 @@ MONKEY_DATA = {
         },
         "upgrades": {
             "path_1": [
-                {"name": "Long Range", "cost": 90, "range": 50, "fire_rate": 0},
-                {"name": "Enhanced Eyesight", "cost": 160, "range": 60, "fire_rate": -100},
+                {"name": "Long Range", "cost": 90, "range": 187.5, "fire_rate": 0},
+                {"name": "Enhanced Eyesight", "cost": 160, "range": 225, "fire_rate": -100},
                 {"name": "Spike-O-Pult", "cost": 500, "pierce": 40, "fire_rate": -600},
-                {"name": "Juggernaut", "cost": 1500, "pierce": 100, "fire_rate": 100},
+                {"name": "Juggernaut", "cost": 1900, "pierce": 100, "fire_rate": 100},
             ],
             "path_2": [
                 {"name": "Sharp Shots", "cost": 140, "pierce": 2},
-                {"name": "Razor Sharp Shots", "cost": 170, "pierce": 4},
-                {"name": "Triple Darts", "cost": 340, "pierce": 4},
-                {"name": "Super Monkey Fan Club", "cost": 7500, "pierce": 4},
+                {"name": "Razor Sharp Shots", "cost": 170, "pierce": 5},
+                {"name": "Triple Darts", "cost": 475, "pierce": 4},
+                {"name": "Super Monkey Fan Club", "cost": 8000, "pierce": 4},
             ]
         }
     }

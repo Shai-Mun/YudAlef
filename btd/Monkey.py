@@ -19,6 +19,7 @@ class Monkey(pygame.sprite.Sprite):
         self.type = m_type
         self.cost = stats['cost']
         self.range = stats['range']
+        self.original_range = self.range
         self.pierce = stats['pierce']
         self.fire_rate = stats['fire_rate']
         self.image = pygame.image.load(f"assets/monkeys/{m_type}/{stats['image']}").convert()
@@ -38,6 +39,7 @@ class Monkey(pygame.sprite.Sprite):
         self.rect.center = (int(self.pos.x), int(self.pos.y))
 
         self.update_visuals(pygame.display.get_window_size())
+        self.update_range(pygame.display.get_window_size())
 
     def update_visuals(self, new_screen_size):
         self.pos.x = self.pos_ratio[0] * new_screen_size[0]
@@ -48,6 +50,14 @@ class Monkey(pygame.sprite.Sprite):
                                                    self.img_ratio[1] * new_screen_size[1]))
         self.image = self.sized_image
         self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
+
+    def update_range(self, new_screen_size):
+        # we calculate with * 0.88 since the shop takes up 12% of the screen
+        ratio_w = (new_screen_size[0] * 0.88) / (1960 * 0.88)
+        ratio_h = new_screen_size[1] / 1080
+
+        avg_ratio = (ratio_w + ratio_h) / 2
+        self.range = avg_ratio * self.original_range
 
     def check_shoot(self, current_time, bloons_list):
         if current_time - self.last_shot_time >= self.fire_rate:
@@ -82,8 +92,8 @@ class Monkey(pygame.sprite.Sprite):
         print(upgrade)
         for key in upgrade:
             if key != 'name':
-                if key == 'cost':
-                    self.cost = upgrade[key]
+                if key != 'fire_rate':
+                    setattr(self, key, upgrade[key])
                 else:
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, upgrade[key] + getattr(self, key))

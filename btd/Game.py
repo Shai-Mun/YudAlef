@@ -6,7 +6,6 @@ from GUI import GameInterface, UpgradeMenu
 from Databases import BLOON_CONFIG
 from typing import Optional
 
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1' # If using Pygame
 # --- 1. SETTINGS & INITIALIZATION ---
 pygame.init()
 pygame.display.set_caption("BTD Battles")
@@ -98,6 +97,20 @@ def handle_left_click(pos):
         active_monkey = None
 
 
+def draw_transparent_circle(surface, color, center, radius):
+    # 1. Create a temporary surface with an alpha channel
+    # The size must be at least the diameter of the circle
+    temp_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+
+    # 2. Draw the circle onto the temp surface
+    # Note: center is (radius, radius) because it's relative to the temp surface
+    pygame.draw.circle(temp_surface, color, (radius, radius), radius)
+
+    # 3. Blit the temp surface onto the main screen
+    # Adjust position so the center matches the intended coordinates
+    surface.blit(temp_surface, (center[0] - radius, center[1] - radius))
+
+
 # --- 4. GLOBAL STATE SETUP ---
 fullscreen = True
 game_map = Maps("galili")
@@ -183,6 +196,7 @@ while not finish:
 
     # Draw Upgrade Menu
     if active_monkey:
+        draw_transparent_circle(game_map.screen, (255, 0, 0, 128), active_monkey.pos, active_monkey.range)
         upgrade_gui.draw(game_map.screen, active_monkey)
 
     pygame.display.flip()

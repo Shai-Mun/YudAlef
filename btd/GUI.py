@@ -163,7 +163,18 @@ class UpgradeMenu:
     def __init__(self):
         self.COLOR_BG = (80, 50, 30)
         self.buttons = {}
+        self.image_cache = {}
         self.update_layout(True)
+
+    def get_upgrade_image(self, path):
+        if path not in self.image_cache:
+            try:
+                img = pygame.image.load(path).convert()
+                img.set_colorkey(PINK)
+                self.image_cache[path] = img
+            except:
+                self.image_cache[path] = None
+        return self.image_cache[path]
 
     def update_layout(self, fullscreen, event=None):
         if fullscreen:
@@ -216,26 +227,25 @@ class UpgradeMenu:
     def upgrade(self, monkey, path, next_u=1):
         target_btn = self.buttons[f"path{path}"]
 
-        if monkey.paths[path] < 3:
+        if (monkey.paths[path] == 3 and next_u == 1) or monkey.paths[path] == 4 or (monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
+            target_btn.label = "MAXED"
+            target_btn.image = None
+            monkey.paths[path] = 4
+
+        elif monkey.paths[path] < 3:
             data = MONKEY_DATA.get(monkey.type)['upgrades'][f'path_{path}'][monkey.paths[path] + next_u]
 
             # 1. Update the label text
             target_btn.label = data['name']
-
             # 2. Update the image
             file_path = f"assets/monkeys/{monkey.type}/"
-            try:
-                img = pygame.image.load(file_path + f"{data['name']}.png").convert()
-                img.set_colorkey(PINK)
-                target_btn.image = img
-            except:
-                target_btn.image = None
+            full_path = file_path + f"{data['name']}.png"
+            target_btn.image = self.get_upgrade_image(full_path)
 
             if next_u == 1:
+                if monkey.paths[path] == 2 and monkey.paths[0] == '_':
+                    monkey.paths[0] = path
                 monkey.paths[path] += next_u
                 monkey.upgrade(data)
 
-        elif (monkey.paths[path] == 3 and next_u == 1) or monkey.paths[path] == 4:
-            target_btn.label = "MAXED"
-            target_btn.image = None
-            monkey.paths[path] = 4
+#

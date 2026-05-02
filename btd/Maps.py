@@ -54,6 +54,7 @@ def update_loc(bloons_list, monkeys_list, new_size):
 
     for monkey in monkeys_list:
         monkey.update_visuals(new_size)
+        monkey.update_range(new_size)
 
 class Maps:
     def __init__(self, track):

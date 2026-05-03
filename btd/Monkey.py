@@ -1,6 +1,7 @@
 import pygame
 import math
 from Databases import MONKEY_DATA
+from Projectile import Projectile
 
 PINK = (255, 128, 255)
 
@@ -30,6 +31,7 @@ class Monkey(pygame.sprite.Sprite):
         self.paths = ['_', 0, 0]
 
         self.projectile = stats['projectile']
+        self.projectile_list = pygame.sprite.Group()
         self.last_shot_time = 0
 
         self.pos_ratio = r_pos
@@ -72,7 +74,7 @@ class Monkey(pygame.sprite.Sprite):
                 # self.rect = self.sized_image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
                 self.image.set_colorkey(PINK)
 
-                target.hit()
+                self.projectile_list.add(Projectile(self, target))
                 self.last_shot_time = current_time
 
     def find_target(self, bloons_list):
@@ -96,5 +98,8 @@ class Monkey(pygame.sprite.Sprite):
                     setattr(self, key, upgrade[key])
                 else:
                     # This dynamically sets the attribute named after whatever is in 'key'
-                    setattr(self, key, upgrade[key] + getattr(self, key))
+                    setattr(self, key, getattr(self, key) - upgrade[key])
 
+    def move_projectiles(self, dt):
+        for p in self.projectile_list:
+            p.move(dt)

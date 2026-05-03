@@ -113,4 +113,5 @@ class Maps:
         self.screen.blit(self.bg_scaled, (self.shop_width, 0))
         bloons_list.draw(self.screen)
         monkeys_list.draw(self.screen)
+        for m in monkeys_list: m.projectile_list.draw(self.screen)
 

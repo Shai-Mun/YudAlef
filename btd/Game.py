@@ -181,7 +181,10 @@ while not finish:
     dt = clock.tick(REFRESH_RATE)
     check_send(current_time)
     for b in bloons_list: b.move(dt)
-    for m in monkeys_list: m.check_shoot(current_time, bloons_list)
+    for m in monkeys_list:
+        m.check_shoot(current_time, bloons_list)
+        m.move_projectiles(dt)
+
 
     # C. RENDERING
     game_map.draw(bloons_list, monkeys_list, dt)

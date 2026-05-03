@@ -14,8 +14,6 @@ BLOON_DATA = {
 }
 
 class Bloon(pygame.sprite.Sprite):
-
-
     def __init__(self, color, side, path_list):
         super().__init__()
         stats = BLOON_DATA.get(color.lower(), DEFAULT_BLOON)
@@ -67,8 +65,8 @@ class Bloon(pygame.sprite.Sprite):
             if distance_to_target > 0:
                 # 1. Update Angle (for rotation)
                 # math.atan2 returns radians; we convert to degrees
-                rads = math.atan2(-direction.y, direction.x)  # Negative Y because pygame Y is inverted
-                self.angle = math.degrees(rads)
+                # rads = math.atan2(-direction.y, direction.x)  # Negative Y because pygame Y is inverted
+                # self.angle = math.degrees(rads)
 
                 # 2. Movement
                 if distance_to_target > move_distance:

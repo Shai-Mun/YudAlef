@@ -5,6 +5,8 @@ from Monkey import *
 from GUI import GameInterface, UpgradeMenu
 from Databases import BLOON_CONFIG
 from typing import Optional
+from CollisionGrid import CollisionGrid
+from Player import *
 
 # --- 1. SETTINGS & INITIALIZATION ---
 pygame.init()
@@ -13,14 +15,8 @@ pygame.display.set_caption("BTD Battles")
 # Configuration
 REFRESH_RATE = 60
 PINK = (255, 128, 255)
-MONKEY_MAP = {
-    "monkey_0": "dart_monkey",
-    "monkey_1": "dart_monkey",
-    "monkey_2": "dart_monkey",
-    "monkey_3": "dart_monkey"
-}
-
-
+P1 = Player(1)
+MONKEY_MAP = P1.monkey_map
 # --- 2. ASSET LOADING HELPERS ---
 def load_sprite(path, colorkey=None):
     """Helper to load image, convert it, and set colorkey in one go."""
@@ -44,12 +40,12 @@ def initialize_assets():
 
 # --- 3. LOGIC HANDLERS ---
 def update_all_layouts(f_screen, e=None):
-    game_map.update_size(bloons_list, monkeys_list, f_screen, e)
+    game_map.update_size(P1.bloons_list, P1.monkeys_list, f_screen, e)
     gui.update_layout(f_screen, e)
     upgrade_gui.update_layout(f_screen, e)
 
 
-def handle_left_click(pos):
+def handle_left_click(pos, player):
     global active_monkey, selected_tower
 
     # Priority 1: Check Upgrade Menu (if it's open)
@@ -71,13 +67,13 @@ def handle_left_click(pos):
     menu_action = gui.get_clicked_item(pos)
     if menu_action:
         if 'monkey_' in menu_action:
-            selected_tower = MONKEY_MAP.get(menu_action)
+            selected_tower = P1.monkey_map.get(menu_action)
         elif 'bloon_' in menu_action:
             trigger_bloon_send(menu_action, PATHS["INVERSE_PATH"])
         return
 
     # Priority 3: Check for Monkey selection on the map
-    clicked_m = upgrade_menu(monkeys_list, pos)
+    clicked_m = upgrade_menu(player.monkeys_list, pos)
     if clicked_m:
         active_monkey = clicked_m
         selected_tower = None  # Don't hold a tower while upgrading
@@ -90,7 +86,7 @@ def handle_left_click(pos):
         rel_y = pos[1] / game_map.screen.get_height()
 
         new_monkey = Monkey(selected_tower, (rel_x, rel_y))
-        monkeys_list.add(new_monkey)
+        player.monkeys_list.add(new_monkey)
         selected_tower = None
     else:
         # Clicked empty map space
@@ -115,17 +111,14 @@ def draw_transparent_circle(surface, color, center, radius):
 fullscreen = True
 game_map = Maps("galili")
 gui = GameInterface()
-gui.set_monkey_imgs(MONKEY_MAP)
+gui.set_monkey_imgs(P1.monkey_map)
 upgrade_gui = UpgradeMenu()
 
 # Now that the screen is set, load images
 ghost_cache = initialize_assets()
 
 clock = pygame.time.Clock()
-bloons_queue = []
-last_send = 0
-bloons_list = pygame.sprite.Group()
-monkeys_list = pygame.sprite.Group()
+grid = CollisionGrid()
 
 selected_tower: Optional[str] = None
 active_monkey: Optional[Monkey] = None
@@ -140,14 +133,13 @@ def trigger_bloon_send(name, path_type):
         for _ in range(data["count"]):
             # Create the bloon.
             new_bloon = Bloon(data["color"], 2, path_type)
-            bloons_queue.append((new_bloon, data["load_time"]))
+            P1.bloons_queue.append((new_bloon, data["load_time"]))
 
-def check_send(curr_time):
-    global last_send
-    if len(bloons_queue) > 0:
-        if curr_time - last_send >= bloons_queue[0][1]:
-            bloons_list.add(bloons_queue.pop(0)[0])
-            last_send = curr_time
+def check_send(curr_time, player):
+    if len(player.bloons_queue) > 0:
+        if curr_time - player.last_send >= player.bloons_queue[0][1]:
+            player.bloons_list.add(player.bloons_queue.pop(0)[0])
+            player.last_send = curr_time
 
 # --- 5. MAIN LOOP ---
 while not finish:
@@ -167,28 +159,30 @@ while not finish:
 
         elif event.type == MOUSEBUTTONDOWN:
             if event.button == 1:  # LEFT CLICK
-                handle_left_click(event.pos)
+                handle_left_click(event.pos, P1)
             elif event.button == 2:  # SCROLL CLICK (Random Spawner)
                 colors = ["red", "blue", "green", "yellow", "pink", "black"]
                 c = random.choice(colors)
-                bloons_list.add(Bloon(c, 1, PATHS["PATH"]))
-                bloons_list.add(Bloon(c, 2, PATHS["INVERSE_PATH"]))
+                P1.bloons_list.add(Bloon(c, 1, PATHS["PATH"]))
+                P1.bloons_list.add(Bloon(c, 2, PATHS["INVERSE_PATH"]))
 
         elif event.type == MOUSEWHEEL:
             gui.handle_scroll(-event.y)
 
     # B. GAME LOGIC UPDATES
     dt = clock.tick(REFRESH_RATE)
-    check_send(current_time)
-    for b in bloons_list: b.move(dt)
-    for m in monkeys_list:
-        m.check_shoot(current_time, bloons_list)
-        m.move_projectiles(dt)
+    check_send(current_time, P1)
+    grid.clear()
+    for b in P1.bloons_list:
+        b.move(dt)
+        grid.insert_bloon(b)
+    P1.check_hit(current_time, dt)
+
 
 
     # C. RENDERING
-    game_map.draw(bloons_list, monkeys_list, dt)
-    gui.draw(game_map.screen)
+    game_map.draw(P1.bloons_list, P1.monkeys_list)
+    gui.draw(game_map.screen, pygame.time.get_ticks() / 1000, P1.money, P1.income)
 
     # Draw "Ghost" Tower
     if selected_tower:

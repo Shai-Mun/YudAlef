@@ -77,6 +77,8 @@ class InterfaceButton:
 
 class GameInterface:
     def __init__(self):
+        # Define Colors
+        self.COLOR_PILLAR_HEADER = (100, 60, 40)  # Darker wood panel
         self.COLOR_SHOP = (185, 120, 85)
         self.COLOR_BORDER = (145, 90, 60)
         self.COLOR_PILLAR = (145, 90, 60)
@@ -96,7 +98,10 @@ class GameInterface:
 
         self.screen_width, self.screen_height = w, h
         self.shop_width = int(w * 0.12)
-        self.border_thickness, self.pillar_width = 8, 15
+
+        # INCREASED pillar width from 15 to 35 to match the markings in image_0.png
+        self.border_thickness, self.pillar_width = 8, 35
+
         self.shop_rect = pygame.Rect(0, 0, self.shop_width, h)
         self.col_w = self.shop_width // 2
 
@@ -142,7 +147,8 @@ class GameInterface:
                     return btn.name
         return None
 
-    def draw(self, surface):
+    def draw(self, surface, timer_seconds, money, income):
+        # 1. Draw the main sidebar base
         pygame.draw.rect(surface, self.COLOR_SHOP, self.shop_rect)
         for btn in self.monkey_buttons: btn.draw(surface)
 
@@ -150,16 +156,65 @@ class GameInterface:
         for btn in self.bloon_buttons: btn.draw(surface, -self.scroll_y)
         surface.set_clip(None)
 
-        game_area_w = self.screen_width - self.shop_width
-        pillar_x = self.shop_width + (game_area_w // 2) - (self.pillar_width // 2)
-        pygame.draw.rect(surface, self.COLOR_PILLAR, (pillar_x, 0, self.pillar_width, self.screen_height))
+        # 2. Draw sidebar Borders
         pygame.draw.rect(surface, self.COLOR_BORDER, (self.shop_width - 2, 0, 4, self.screen_height))
+
+        # --- CALCULATE CENTER OF PLAY AREA ---
+        play_area_width = self.screen_width - self.shop_width
+        center_x = self.shop_width + (play_area_width // 2)
+
+        # --- DRAW THE PILLAR ---
+        pillar_x = center_x - (self.pillar_width // 2)
+        pygame.draw.rect(surface, self.COLOR_PILLAR, (pillar_x, 0, self.pillar_width, self.screen_height))
+
+        # --- DRAW THE HEADER RECTANGLE ---
+        header_h = int(self.screen_height * 0.08)  # Slightly slimmer for a sleeker look
+        header_w = int(self.pillar_width * 7)  # Wide enough for labels + numbers
+        header_x = center_x - (header_w // 2)
+        header_rect = pygame.Rect(header_x, 0, header_w, header_h)
+
+        pygame.draw.rect(surface, self.COLOR_PILLAR_HEADER, header_rect, border_radius=5)
+        pygame.draw.rect(surface, self.COLOR_BORDER, header_rect, 3, border_radius=5)
+
+        # --- DRAW THE 3 COUNTERS ---
+
+        # A. Formatting
+        mins, secs = divmod(int(timer_seconds), 60)
+        timer_str = f"{mins:02d}:{secs:02d}"
+
+        # B. Render Text Surfaces
+        # Money (Yellow), Timer (White), Income (Green)
+        cash_surf = UI_FONT.render(f"${money}", True, (255, 255, 0))
+        time_surf = UI_FONT.render(timer_str, True, (255, 255, 255))
+        income_surf = UI_FONT.render(f"+{income}", True, (100, 255, 100))
+
+        # Small Labels (Optional, but helpful for clarity)
+        label_font = pygame.font.SysFont("Arial", 12, bold=True)
+        eco_label = label_font.render("INCOME", True, (200, 200, 200))
+        cash_label = label_font.render("CASH", True, (200, 200, 200))
+
+        # C. Calculate Positions
+        text_y = header_rect.centery - (time_surf.get_height() // 2)
+
+        # Money (Left)
+        surface.blit(cash_label, (header_rect.x + 8, header_rect.y + 4))
+        surface.blit(cash_surf, (header_rect.x + 8, text_y + 5))
+
+        # Timer (Center)
+        surface.blit(time_surf, (center_x - time_surf.get_width() // 2, text_y))
+
+        # Income (Right)
+        surface.blit(eco_label, (header_rect.right - eco_label.get_width() - 8, header_rect.y + 4))
+        surface.blit(income_surf, (header_rect.right - income_surf.get_width() - 8, text_y + 5))
+
+        # 3. Draw screen borders
         pygame.draw.rect(surface, self.COLOR_BORDER, (0, 0, self.screen_width, self.border_thickness))
         pygame.draw.rect(surface, self.COLOR_BORDER,
                          (0, self.screen_height - self.border_thickness, self.screen_width, self.border_thickness))
 
 
 class UpgradeMenu:
+    # ... (Keep existing UpgradeMenu class exactly as it was) ...
     def __init__(self):
         self.COLOR_BG = (80, 50, 30)
         self.buttons = {}
@@ -227,7 +282,8 @@ class UpgradeMenu:
     def upgrade(self, monkey, path, next_u=1):
         target_btn = self.buttons[f"path{path}"]
 
-        if (monkey.paths[path] == 3 and next_u == 1) or monkey.paths[path] == 4 or (monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
+        if (monkey.paths[path] == 3 and next_u == 1) or monkey.paths[path] == 4 or (
+                monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
             target_btn.label = "MAXED"
             target_btn.image = None
             monkey.paths[path] = 4
@@ -247,5 +303,3 @@ class UpgradeMenu:
                     monkey.paths[0] = path
                 monkey.paths[path] += next_u
                 monkey.upgrade(data)
-
-#

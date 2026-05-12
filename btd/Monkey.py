@@ -100,6 +100,8 @@ class Monkey(pygame.sprite.Sprite):
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, getattr(self, key) - upgrade[key])
 
-    def move_projectiles(self, dt):
+    def move_projectiles(self, dt, grid):
+        total_monkey_earnings = 0
         for p in self.projectile_list:
-            p.move(dt)
+            total_monkey_earnings += p.move(dt, grid)
+        return total_monkey_earnings

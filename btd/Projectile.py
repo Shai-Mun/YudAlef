@@ -26,7 +26,8 @@ class Projectile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (int(self.pos.x), int(self.pos.y))
         self.target_pos = pygame.Vector2(bloon.pos)
-        self.target = bloon
+
+        self.hit_bloons = set()
 
         self.update_visuals(pygame.display.get_window_size())
 
@@ -45,7 +46,9 @@ class Projectile(pygame.sprite.Sprite):
         self.image = self.sized_image
         self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
 
-    def move(self, dt):
+    def move(self, dt, grid):
+        money_earned = 0
+
         width = pygame.display.get_surface().get_width()
         pixels_per_second = self.speed * width
 
@@ -62,7 +65,6 @@ class Projectile(pygame.sprite.Sprite):
             if distance_to_target > move_distance:
                 self.pos += direction.normalize() * move_distance
             else:
-                self.target.hit()
                 self.kill()
 
         self.image = pygame.transform.rotate(self.original_image, self.angle)
@@ -71,3 +73,18 @@ class Projectile(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.distance += move_distance
 
+        targets = grid.get_nearby_bloons(self)
+        hits = pygame.sprite.spritecollide(self, targets, False)
+
+        for bloon in hits:
+            if bloon not in self.hit_bloons and self.pierce > 0:
+                # The bloon tells us how much money we just made
+                money_earned += bloon.take_damage(1)
+                self.hit_bloons.add(bloon)
+                self.pierce -= 1
+
+                if self.pierce <= 0:
+                    self.kill()
+                    break
+
+        return money_earned

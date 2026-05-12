@@ -63,44 +63,43 @@ class Bloon(pygame.sprite.Sprite):
             move_distance = pixels_per_second * (dt / 1000)
 
             if distance_to_target > 0:
-                # 1. Update Angle (for rotation)
-                # math.atan2 returns radians; we convert to degrees
-                # rads = math.atan2(-direction.y, direction.x)  # Negative Y because pygame Y is inverted
-                # self.angle = math.degrees(rads)
-
-                # 2. Movement
+                # 1. Movement
                 if distance_to_target > move_distance:
                     self.pos += direction.normalize() * move_distance
                 else:
                     self.pos = pygame.Vector2(target)
                     self.target_node += 1
 
-            # self.image = pygame.transform.rotate(self.original_image, self.angle)
             self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
 
             self.image.set_colorkey(PINK)
             self.distance += move_distance
 
-    def hit(self):
-        child_type = BLOON_DATA[self.type]["child"]
+    def take_damage(self, dmg):
+        amount = 0
+        for i in range(dmg):
 
-        if child_type is not None:
-            self.type = child_type
+            child_type = BLOON_DATA[self.type]["child"]
 
-            stats = BLOON_DATA[self.type]
-            self.speed = stats["speed"] / 1960
+            if child_type is not None:
+                self.type = child_type
 
-            self.image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
-            self.sized_image = self.image
-            self.original_image = self.image
-            self.image.set_colorkey(PINK)
+                stats = BLOON_DATA[self.type]
+                self.speed = stats["speed"] / 1960
 
-            self.img_ratio = (self.image.get_width() / 1960, self.image.get_height() / 1080)
-            old_center = self.rect.center
-            self.rect = self.image.get_rect()
-            self.rect.center = old_center
+                self.image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
+                self.sized_image = self.image
+                self.original_image = self.image
+                self.image.set_colorkey(PINK)
 
-            self.update_visuals(pygame.display.get_window_size())
-        else:
-            self.kill()
+                self.img_ratio = (self.image.get_width() / 1960, self.image.get_height() / 1080)
+                old_center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = old_center
+
+                self.update_visuals(pygame.display.get_window_size())
+                amount += 1
+            else:
+                self.kill()
+        return amount
 

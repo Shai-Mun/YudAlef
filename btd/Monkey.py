@@ -90,7 +90,7 @@ class Monkey(pygame.sprite.Sprite):
                     target = bloon
         return target
 
-    def upgrade(self, upgrade):
+    def monkey_upgrade(self, upgrade):
         print(upgrade)
         for key in upgrade:
             if key != 'name':

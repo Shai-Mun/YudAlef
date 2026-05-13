@@ -7,8 +7,8 @@ PINK = (255, 128, 255)
 track_ratios = []
 
 PATHS = {
-    "PATH": [],
-    "INVERSE_PATH": []
+    "1": [],
+    "2": []
 }
 
 
@@ -39,17 +39,17 @@ def update_path(width, height, shop_width):
     global track_ratios
 
     track_ratios = get_ratios("galili")
-    PATHS["PATH"] = [pygame.Vector2(width*r[0] + shop_width, height*r[1]) for r in track_ratios]
-    PATHS["INVERSE_PATH"] = [pygame.Vector2(width*r[0] + width + shop_width, height*r[1]) for r in inverse()]
+    PATHS["1"] = [pygame.Vector2(width*r[0] + shop_width, height*r[1]) for r in track_ratios]
+    PATHS["2"] = [pygame.Vector2(width*r[0] + width + shop_width, height*r[1]) for r in inverse()]
 
 
 def update_loc(bloons_list, monkeys_list, new_size):
     for bloon in bloons_list:
         match bloon.side:
             case 1:
-                bloon.path = PATHS["PATH"]
+                bloon.path = PATHS["1"]
             case 2:
-                bloon.path = PATHS["INVERSE_PATH"]
+                bloon.path = PATHS["2"]
         bloon.update_visuals(new_size)
 
     for monkey in monkeys_list:
@@ -88,9 +88,10 @@ class Maps:
         self.screen = pygame.display.set_mode((w, h), pygame.RESIZABLE)
         self.bg_scaled = pygame.transform.scale(self.bg, (w - self.shop_width, h))
 
-    def draw(self, bloons_list, monkeys_list):
+    def draw_map(self, players):
         self.screen.blit(self.bg_scaled, (self.shop_width, 0))
-        bloons_list.draw(self.screen)
-        monkeys_list.draw(self.screen)
-        for m in monkeys_list: m.projectile_list.draw(self.screen)
+        for p in players:
+            p.bloons_list.draw(self.screen)
+            p.monkeys_list.draw(self.screen)
+            for m in p.monkeys_list: m.projectile_list.draw(self.screen)
 

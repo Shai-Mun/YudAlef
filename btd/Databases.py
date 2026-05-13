@@ -1,11 +1,11 @@
 BLOON_CONFIG = {
-    "bloon_0": {"color": "red", "count": 8, "load_time": 800},  # grouped
-    "bloon_1": {"color": "blue", "count": 6, "load_time": 1000},
-    "bloon_2": {"color": "blue", "count": 6, "load_time": 600},  # grouped
-    "bloon_3": {"color": "pink", "count": 3, "load_time": 1000},
-    "bloon_4": {"color": "green", "count": 5, "load_time": 500},
-    "bloon_5": {"color": "black", "count": 3, "load_time": 1000},
-    "bloon_6": {"color": "yellow", "count": 5, "load_time": 250},
+    "bloon_0": {"round": 2, "color": "red", "count": 8, "load_time": 800, "cost": 25, "eco": 1},  # grouped
+    "bloon_1": {"round": 2, "color": "blue", "count": 6, "load_time": 1000, "cost": 25, "eco": 1},
+    "bloon_2": {"round": 4, "color": "blue", "count": 6, "load_time": 600, "cost": 42, "eco": 1.7},  # grouped
+    "bloon_3": {"round": 4, "color": "pink", "count": 3, "load_time": 1000, "cost": 42, "eco": 1.7},
+    "bloon_4": {"round": 6, "color": "green", "count": 5, "load_time": 500, "cost": 60, "eco": 2.4},
+    "bloon_5": {"round": 6, "color": "black", "count": 3, "load_time": 1000, "cost": 60, "eco": 2.4},
+    "bloon_6": {"round": 8, "color": "yellow", "count": 5, "load_time": 250, "cost": 75, "eco": 3},
 }
 
 

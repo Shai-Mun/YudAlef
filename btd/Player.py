@@ -1,12 +1,15 @@
 import pygame
 from CollisionGrid import CollisionGrid
 from typing import Optional
-from Monkey import *
-from btd.GUI import GameInterface, UpgradeMenu
-from btd.Maps import Maps, PATHS
+from Maps import PATHS
+
+_BASE_GAME_W = (1960 - int(1960 * 0.12)) // 2  # 862 px reference
+_BASE_GAME_H = 1080
+PINK = (255, 128, 255)
+
+class User:
 
 
-class Player:
     def __init__(self, side):
         self.side = side
         self.monkey_map = {
@@ -15,6 +18,8 @@ class Player:
             "monkey_2": "dart_monkey",
             "monkey_3": "dart_monkey"
         }
+        self.lives = 200
+
         self.money = 300
         self.eco = 250
         self.eco_timer = 0  # Tracks time until next payout
@@ -25,21 +30,20 @@ class Player:
         self.monkeys_list = pygame.sprite.Group()
         self.grid = CollisionGrid()
 
-        # self.game_map = Maps("galili")
-        # self.gui = GameInterface()
-        # self.gui.set_monkey_imgs(self.monkey_map)
-        # self.upgrade_gui = UpgradeMenu()
+        self.size = [1960, 1080]
+        self.game_rect = pygame.Rect(0, 0, 0, 0)
 
         self.path = PATHS[str(side)]
 
         self.selected_tower: Optional[str] = None
+        from Monkey import Monkey
         self.active_monkey: Optional[Monkey] = None
 
     def update_eco(self, dt):
         self.eco_timer += dt
 
         if self.eco_timer >= self.ECO_INTERVAL:
-            self.money += self.eco
+            self.money += round(self.eco)
             self.eco_timer = 0  # Reset the clock for the next 6 seconds
             print(f"Payout! Current Money: {self.money}")
 
@@ -59,7 +63,9 @@ class Player:
         # 3. Collision & Combat
         self.grid.clear()
         for b in self.bloons_list:
-            b.move(dt)
+            if b.move_bloon(dt):
+                self.lives -= 1
+            b.update_bloon_rect(self.game_rect)
             # Check if bloon reached the end
             # if b.reached_end:
             #     self.lives -= b.leak_damage
@@ -69,11 +75,27 @@ class Player:
 
         for m in self.monkeys_list:
             m.check_shoot(current_time, self.bloons_list)
-            self.money += m.move_projectiles(dt, self.grid)
+            m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
+            m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
+            self.money += m.check_hits(self.grid)
+
 
     def try_purchase(self, cost):
         if self.money >= cost:
             self.money -= cost
             return True  # Purchase successful
         return False  # Too poor!
+
+    def calc_game_rect(self):
+        """Dynamically computes the exact screen rectangle for this player's play field."""
+        w, h = self.size[0], self.size[1]
+        shop_width = int(w * 0.12)
+        game_width = (w - shop_width) // 2
+
+        if self.side == 1:
+            # Player 1 occupies the left half of the remaining space
+            self.game_rect = pygame.Rect(shop_width, 0, game_width, h)
+        else:
+            # Player 2 occupies the right half of the remaining space
+            self.game_rect = pygame.Rect(shop_width + game_width, 0, game_width, h)
 

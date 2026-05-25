@@ -3,7 +3,10 @@ import math
 from Databases import MONKEY_DATA
 from Projectile import Projectile
 
-PINK = (255, 128, 255)
+from Player import _BASE_GAME_W, _BASE_GAME_H, PINK
+
+_MONKEY_NORM_W = 40 / _BASE_GAME_W
+_MONKEY_NORM_H = 40 / _BASE_GAME_H
 
 def upgrade_menu(monkeys_list, pos):
     for monkey in monkeys_list:
@@ -33,30 +36,48 @@ class Monkey(pygame.sprite.Sprite):
         self.projectile = stats['projectile']
         self.projectile_list = pygame.sprite.Group()
         self.last_shot_time = 0
+        self.proj_count = 1
+        self.proj_angle = 0
 
-        self.pos_ratio = r_pos
-        self.pos = pygame.Vector2(0, 0)
+        self.pos = pygame.Vector2(r_pos[0], r_pos[1])
+        # self.pos = (0, 0)
         self.img_ratio = (self.image.get_width()/1960, self.image.get_height()/1080)
         self.rect = self.image.get_rect()
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
+        # self.rect.center = (int(self.pos.x), int(self.pos.y))
 
-        self.update_visuals(pygame.display.get_window_size())
-        self.update_range(pygame.display.get_window_size())
+        # self.update_visuals(pygame.display.get_window_size())
+        # self.update_range(pygame.display.get_window_size())
 
-    def update_visuals(self, new_screen_size):
-        self.pos.x = self.pos_ratio[0] * new_screen_size[0]
-        self.pos.y = self.pos_ratio[1] * new_screen_size[1]
-        # Only the monkey knows how to scale itself
-        self.sized_image = pygame.transform.scale(self.original_image,
-                                                  (self.img_ratio[0] * new_screen_size[0],
-                                                   self.img_ratio[1] * new_screen_size[1]))
-        self.image = self.sized_image
-        self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
+    def update_monkey_rect(self, game_rect):
+        """
+        Convert the normalised pos into screen pixels and rebuild self.image /
+        self.rect.  Call once per frame *after* move(), before drawing.
+
+        This is the only place pixels appear – everything else stays in 0..1 space.
+        """
+        sx = game_rect.x + self.pos.x * game_rect.width
+        sy = game_rect.y + self.pos.y * game_rect.height
+        pw = max(1, int(_MONKEY_NORM_W * game_rect.width))
+        ph = max(1, int(_MONKEY_NORM_H * game_rect.height))
+
+        self.image = pygame.transform.scale(self.original_image, (pw, ph))
+        self.image.set_colorkey(PINK)
+        self.rect = self.image.get_rect(center=(round(sx), round(sy)))
+
+    # def update_visuals(self, new_screen_size):
+    #     self.pos.x = self.pos_ratio[0] * new_screen_size[0]
+    #     self.pos.y = self.pos_ratio[1] * new_screen_size[1]
+    #     # Only the monkey knows how to scale itself
+    #     self.sized_image = pygame.transform.scale(self.original_image,
+    #                                               (self.img_ratio[0] * new_screen_size[0],
+    #                                                self.img_ratio[1] * new_screen_size[1]))
+    #     self.image = self.sized_image
+    #     self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
 
     def update_range(self, new_screen_size):
         # we calculate with * 0.88 since the shop takes up 12% of the screen
-        ratio_w = (new_screen_size[0] * 0.88) / (1960 * 0.88)
-        ratio_h = new_screen_size[1] / 1080
+        ratio_w = (new_screen_size.width * 0.88) / (1960 * 0.88)
+        ratio_h = new_screen_size.height / 1080
 
         avg_ratio = (ratio_w + ratio_h) / 2
         self.range = avg_ratio * self.original_range
@@ -67,6 +88,8 @@ class Monkey(pygame.sprite.Sprite):
 
             if target:
                 direction = target.pos - self.pos
+                # angle = (i * 3.6 * math.pi) / 180
+                # pygame.draw.line(screen, WHITE, (450, 450), (450 + math.cos(angle) * 350, 450 + math.sin(angle) * 350),4)
                 rads = math.atan2(-direction.y, direction.x)
                 angle = math.degrees(rads)
                 self.image = pygame.transform.rotate(self.sized_image, angle-90)
@@ -74,8 +97,10 @@ class Monkey(pygame.sprite.Sprite):
                 # self.rect = self.sized_image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
                 self.image.set_colorkey(PINK)
 
-                self.projectile_list.add(Projectile(self, target))
-                self.last_shot_time = current_time
+                for i in range(-self.proj_count//2, self.proj_count//2):
+                    dest = pygame.Vector2()
+                    self.projectile_list.add(Projectile(self, target))
+                    self.last_shot_time = current_time
 
     def find_target(self, bloons_list):
         target = None
@@ -100,8 +125,15 @@ class Monkey(pygame.sprite.Sprite):
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, getattr(self, key) - upgrade[key])
 
-    def move_projectiles(self, dt, grid):
+    def move_projectiles(self, dt, game_rect):
+        for p in self.projectile_list:
+            p.move_proj(dt)
+            p.update_proj_rect(game_rect)
+            print(p.pos)
+
+    def check_hits(self, grid):
         total_monkey_earnings = 0
         for p in self.projectile_list:
-            total_monkey_earnings += p.move(dt, grid)
+            total_monkey_earnings += p.check_hit(grid)
         return total_monkey_earnings
+

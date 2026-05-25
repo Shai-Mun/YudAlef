@@ -1,13 +1,13 @@
 import random
-from pygame import VIDEORESIZE, KEYDOWN, QUIT, MOUSEBUTTONDOWN, MOUSEWHEEL
-from Maps import *
-from Maps import PATHS
-from Monkey import *
+import pygame
+from pygame import *
+from Maps import Map
+from Monkey import Monkey, upgrade_menu
 from GUI import GameInterface, UpgradeMenu
 from Databases import BLOON_CONFIG
-from typing import Optional
+from Bloon import Bloon
+from Databases import MONKEY_DATA
 from CollisionGrid import CollisionGrid
-from Player import *
 
 # --- 1. SETTINGS & INITIALIZATION ---
 pygame.init()
@@ -86,13 +86,16 @@ def handle_left_click(pos, player):
         return
 
     # Priority 4: Place a Tower
-    if player.selected_tower and pos[0] > gui.shop_width:
+    if player.selected_tower and player.game_rect.x < pos[0] < player.game_rect.x + player.game_rect.width:
         cost = MONKEY_DATA[player.selected_tower]['base']['cost']
         if player.try_purchase(cost):
-            rel_x = pos[0] / game_map.screen.get_width()
-            rel_y = pos[1] / game_map.screen.get_height()
+            rel_x = (pos[0] - player.game_rect.x) / player.game_rect.width
+            rel_y = (pos[1] - player.game_rect.y) / player.game_rect.height
+
             # Place the tower logic here
             new_monkey = Monkey(player.selected_tower, (rel_x, rel_y))
+            new_monkey.update_monkey_rect(player.game_rect)
+
             player.monkeys_list.add(new_monkey)
             player.selected_tower = None
         else:
@@ -102,7 +105,10 @@ def handle_left_click(pos, player):
         player.active_monkey = None
 
 
-def draw_transparent_circle(surface, color, center, radius):
+def draw_transparent_circle(surface, color, player):
+    radius = player.active_monkey.range
+    center = (player.active_monkey.pos.x * player.game_rect.width + player.game_rect.x,
+              player.active_monkey.pos.y * player.game_rect.height + player.game_rect.y)
     # 1. Create a temporary surface with an alpha channel
     # The size must be at least the diameter of the circle
     temp_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
@@ -118,9 +124,9 @@ def draw_transparent_circle(surface, color, center, radius):
 
 def send_bloon(sender, receiver, bloon_name):
     data = BLOON_CONFIG.get(bloon_name)
-    if sender.money >= data["cost"]:
-        sender.money -= data["cost"]
-        sender.eco += data["eco"]  # Increase eco
+    cost = data["cost"]
+    if sender.try_purchase(cost):
+        sender.eco += round(data["eco"])  # Increase eco
 
         # Add to the OPPONENT'S queue
         for _ in range(data["count"]):
@@ -129,24 +135,28 @@ def send_bloon(sender, receiver, bloon_name):
             receiver.bloons_queue.append((new_bloon, data["load_time"]))
 
 
-def update_all_layouts(players, f_screen, e=None):
-    for p in players:
-        game_map.update_size(p.bloons_list, p.monkeys_list, f_screen, e)
-        p.path = PATHS[str(p.side)]
-        gui.update_layout(f_screen, e)
-        upgrade_gui.update_layout(f_screen, e)
+def update_all_layouts(p, f_screen, e=None):
+    size = game_map.update_size(p, f_screen, e)
+    p.size = size
+    p.calc_game_rect()
+    gui.update_layout(f_screen, e)
+    upgrade_gui.update_layout(f_screen, e)
 
 
 # -------------------------------------------------------------------------------------------------------------------
 # Configuration
+game_map = Map("galili")
+
 REFRESH_RATE = 60
-PINK = (255, 128, 255)
-P1 = Player(1)
-P2 = Player(2)
+from Player import User, PINK
+
+P1 = User(1)
+P1.calc_game_rect()
+P2 = User(2)
+P2.calc_game_rect()
 
 # --- 4. GLOBAL STATE SETUP ---
 fullscreen = True
-game_map = Maps("galili")
 gui = GameInterface()
 gui.set_monkey_imgs(P1.monkey_map)
 upgrade_gui = UpgradeMenu()
@@ -172,11 +182,11 @@ while not finish:
             finish = True
 
         elif event.type == VIDEORESIZE:
-            update_all_layouts((P1, P2), fullscreen, event)
+            update_all_layouts(P1, fullscreen, event)
 
         elif event.type == KEYDOWN and event.key == pygame.K_f:
             fullscreen = not fullscreen
-            update_all_layouts((P1, P2), fullscreen)
+            update_all_layouts(P1, fullscreen)
 
         elif event.type == MOUSEBUTTONDOWN:
             if event.button == 1:  # LEFT CLICK
@@ -210,7 +220,7 @@ while not finish:
 
     # Draw Upgrade Menu
     if P1.active_monkey:
-        draw_transparent_circle(game_map.screen, (255, 0, 0, 128), P1.active_monkey.pos, P1.active_monkey.range)
+        draw_transparent_circle(game_map.screen, (255, 0, 0, 128), P1)
         upgrade_gui.draw_upgrade_gui(game_map.screen, P1.active_monkey)
 
     pygame.display.flip()

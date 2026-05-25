@@ -30,7 +30,7 @@ MONKEY_DATA = {
             "path_2": [
                 {"name": "Sharp Shots", "cost": 140, "pierce": 2},
                 {"name": "Razor Sharp Shots", "cost": 170, "pierce": 5},
-                {"name": "Triple Darts", "cost": 475, "pierce": 4},
+                {"name": "Triple Darts", "cost": 475, "pierce": 4, "proj_count": 3, "proj_angle": 60},
                 {"name": "Super Monkey Fan Club", "cost": 8000, "pierce": 4},
             ]
         }

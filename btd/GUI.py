@@ -1,8 +1,8 @@
 import pygame
 from Databases import MONKEY_DATA, BLOON_CONFIG
-from Bloon import BLOON_DATA
+from btd.Bloon import BLOON_DATA
 
-PINK = (255, 128, 255)
+from Player import PINK
 
 pygame.font.init()
 UI_FONT = pygame.font.SysFont("Arial", 18, bold=True)

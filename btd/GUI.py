@@ -296,9 +296,8 @@ class UpgradeMenu:
             target_btn.cost = 0  # Hide cost when maxed
             monkey.paths[path] = 4
 
-        elif monkey.paths[path] < 3:
-            data = MONKEY_DATA.get(monkey.type)['upgrades'][f'path_{path}'][monkey.paths[path] + next_u]
-
+        elif monkey.paths[path] < 4:
+            data = MONKEY_DATA.get(monkey.type)['upgrades'][f'path_{path}'][monkey.paths[path]]
             target_btn.label = data['name']
             # UPDATE COST HERE
             target_btn.cost = data.get('cost', 0)
@@ -308,8 +307,7 @@ class UpgradeMenu:
             target_btn.image = self.get_upgrade_image(full_path)
 
             if next_u == 1:
-                # if data['cost']
                 if monkey.paths[path] == 2 and monkey.paths[0] == '_':
                     monkey.paths[0] = path
-                monkey.paths[path] += next_u
+                monkey.paths[path] += 1
                 monkey.monkey_upgrade(data)

@@ -54,7 +54,6 @@ def update_loc(player, game_rect):
         bloon.update_bloon_rect(game_rect)
 
     for monkey in player.monkeys_list:
-        # (new_size[0]*0.12, 0, (new_size[0] - new_size[0]*0.12) // 2, new_size[1])
         monkey.update_monkey_rect(game_rect)
         monkey.update_range(game_rect)
 

@@ -7,7 +7,6 @@ from GUI import GameInterface, UpgradeMenu
 from Databases import BLOON_CONFIG
 from Bloon import Bloon
 from Databases import MONKEY_DATA
-from CollisionGrid import CollisionGrid
 
 # --- 1. SETTINGS & INITIALIZATION ---
 pygame.init()
@@ -95,6 +94,7 @@ def handle_left_click(pos, player):
             # Place the tower logic here
             new_monkey = Monkey(player.selected_tower, (rel_x, rel_y))
             new_monkey.update_monkey_rect(player.game_rect)
+            new_monkey.update_range(player.game_rect)
 
             player.monkeys_list.add(new_monkey)
             player.selected_tower = None
@@ -151,9 +151,7 @@ REFRESH_RATE = 60
 from Player import User, PINK
 
 P1 = User(1)
-P1.calc_game_rect()
 P2 = User(2)
-P2.calc_game_rect()
 
 # --- 4. GLOBAL STATE SETUP ---
 fullscreen = True
@@ -163,12 +161,7 @@ upgrade_gui = UpgradeMenu()
 
 # Now that the screen is set, load images
 ghost_cache = initialize_assets()
-
 clock = pygame.time.Clock()
-grid = CollisionGrid()
-
-# selected_tower: Optional[str] = None
-# active_monkey: Optional[Monkey] = None
 finish = False
 
 

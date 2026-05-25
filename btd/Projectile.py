@@ -8,7 +8,7 @@ _PROJ_NORM_H = 30 / _BASE_GAME_H
 
 
 class Projectile(pygame.sprite.Sprite):
-    def __init__(self, monkey, bloon):
+    def __init__(self, monkey, dest):
         super().__init__()
 
         self.range = monkey.range + 10
@@ -27,7 +27,7 @@ class Projectile(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(monkey.pos.x, monkey.pos.y)
         # self.img_ratio = (self.image.get_width() / 1960, self.image.get_height() / 1080)
         self.rect = self.image.get_rect()
-        self.target_pos = pygame.Vector2(bloon.pos)
+        self.target_pos = pygame.Vector2((dest.x, dest.y))
 
         self.hit_bloons = set()
 
@@ -51,23 +51,6 @@ class Projectile(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
-
-
-    # def update_visuals(self, new_screen_size):
-    #     old_size = pygame.display.get_window_size()
-    #
-    #     self.pos.x = self.pos_ratio[0] * new_screen_size[0]
-    #     self.pos.y = self.pos_ratio[1] * new_screen_size[1]
-    #
-    #     self.target_pos.x = (self.target_pos.x / old_size[0]) * new_screen_size[0]
-    #     self.target_pos.y = (self.target_pos.y / old_size[1]) * new_screen_size[1]
-    #
-    #     self.sized_image = pygame.transform.scale(self.original_image,
-    #                                               (self.img_ratio[0] * new_screen_size[0],
-    #                                                self.img_ratio[1] * new_screen_size[1]))
-    #     self.image = self.sized_image
-    #     self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
-
     def move_proj(self, dt: float):
         """
         Advance the bloon along its path by one frame.
@@ -90,33 +73,6 @@ class Projectile(pygame.sprite.Sprite):
                 self.pos += direction.normalize() * step
 
             self.distance += step
-
-    # def move_proj(self, dt):
-    #     width = pygame.display.get_surface().get_width()
-    #     pixels_per_second = self.speed * width
-    #
-    #     direction = self.target_pos - self.pos
-    #     distance_to_target = direction.length()
-    #
-    #     move_distance = pixels_per_second * (dt / 1000)
-    #
-    #     if distance_to_target > 0:
-    #         rads = math.atan2(-direction.y, direction.x)  # Negative Y because pygame Y is inverted
-    #         self.angle = math.degrees(rads)
-    #
-    #         # 2. Movement
-    #         if distance_to_target > move_distance:
-    #             self.pos += direction.normalize() * move_distance
-    #         else:
-    #             self.kill()
-    #
-    #     self.distance += move_distance
-    #
-    #     # self.image = pygame.transform.rotate(self.original_image, self.angle)
-    #     # self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
-    #     #
-    #     # self.image.set_colorkey(PINK)
-
 
     def check_hit(self, grid):
         money_earned = 0

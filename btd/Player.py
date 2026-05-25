@@ -20,7 +20,7 @@ class User:
         }
         self.lives = 200
 
-        self.money = 300
+        self.money = 10000
         self.eco = 250
         self.eco_timer = 0  # Tracks time until next payout
         self.ECO_INTERVAL = 6000  # 6 seconds in milliseconds
@@ -38,6 +38,8 @@ class User:
         self.selected_tower: Optional[str] = None
         from Monkey import Monkey
         self.active_monkey: Optional[Monkey] = None
+
+        self.calc_game_rect()
 
     def update_eco(self, dt):
         self.eco_timer += dt
@@ -77,6 +79,7 @@ class User:
             m.check_shoot(current_time, self.bloons_list)
             m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
+            print(m.range)
             self.money += m.check_hits(self.grid)
 
 

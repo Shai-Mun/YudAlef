@@ -22,8 +22,8 @@ class Monkey(pygame.sprite.Sprite):
 
         self.type = m_type
         self.cost = stats['cost']
-        self.range = stats['range']
-        self.original_range = self.range
+        self.original_range = stats['original_range']
+        self.range = 0.0
         self.pierce = stats['pierce']
         self.fire_rate = stats['fire_rate']
         self.image = pygame.image.load(f"assets/monkeys/{m_type}/{stats['image']}").convert()
@@ -40,13 +40,9 @@ class Monkey(pygame.sprite.Sprite):
         self.proj_angle = 0
 
         self.pos = pygame.Vector2(r_pos[0], r_pos[1])
-        # self.pos = (0, 0)
         self.img_ratio = (self.image.get_width()/1960, self.image.get_height()/1080)
         self.rect = self.image.get_rect()
-        # self.rect.center = (int(self.pos.x), int(self.pos.y))
 
-        # self.update_visuals(pygame.display.get_window_size())
-        # self.update_range(pygame.display.get_window_size())
 
     def update_monkey_rect(self, game_rect):
         """
@@ -64,23 +60,15 @@ class Monkey(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
-    # def update_visuals(self, new_screen_size):
-    #     self.pos.x = self.pos_ratio[0] * new_screen_size[0]
-    #     self.pos.y = self.pos_ratio[1] * new_screen_size[1]
-    #     # Only the monkey knows how to scale itself
-    #     self.sized_image = pygame.transform.scale(self.original_image,
-    #                                               (self.img_ratio[0] * new_screen_size[0],
-    #                                                self.img_ratio[1] * new_screen_size[1]))
-    #     self.image = self.sized_image
-    #     self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
-
-    def update_range(self, new_screen_size):
+    def update_range(self, game_rect):
         # we calculate with * 0.88 since the shop takes up 12% of the screen
-        ratio_w = (new_screen_size.width * 0.88) / (1960 * 0.88)
-        ratio_h = new_screen_size.height / 1080
-
+        ratio_w = game_rect.width / ((1960 - int(1960 * 0.12)) // 2)
+        ratio_h = game_rect.height / 1080
         avg_ratio = (ratio_w + ratio_h) / 2
+
         self.range = avg_ratio * self.original_range
+        self.range = self.original_range * (game_rect.width / _BASE_GAME_W)
+
 
     def check_shoot(self, current_time, bloons_list):
         if current_time - self.last_shot_time >= self.fire_rate:
@@ -88,8 +76,6 @@ class Monkey(pygame.sprite.Sprite):
 
             if target:
                 direction = target.pos - self.pos
-                # angle = (i * 3.6 * math.pi) / 180
-                # pygame.draw.line(screen, WHITE, (450, 450), (450 + math.cos(angle) * 350, 450 + math.sin(angle) * 350),4)
                 rads = math.atan2(-direction.y, direction.x)
                 angle = math.degrees(rads)
                 self.image = pygame.transform.rotate(self.sized_image, angle-90)
@@ -97,9 +83,10 @@ class Monkey(pygame.sprite.Sprite):
                 # self.rect = self.sized_image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
                 self.image.set_colorkey(PINK)
 
-                for i in range(-self.proj_count//2, self.proj_count//2):
-                    dest = pygame.Vector2()
-                    self.projectile_list.add(Projectile(self, target))
+                for i in range(-int(self.proj_count/2), math.ceil(self.proj_count/2)):
+                    print(i)
+                    dest = direction.rotate(i * self.proj_angle)
+                    self.projectile_list.add(Projectile(self, dest))
                     self.last_shot_time = current_time
 
     def find_target(self, bloons_list):
@@ -129,7 +116,6 @@ class Monkey(pygame.sprite.Sprite):
         for p in self.projectile_list:
             p.move_proj(dt)
             p.update_proj_rect(game_rect)
-            print(p.pos)
 
     def check_hits(self, grid):
         total_monkey_earnings = 0

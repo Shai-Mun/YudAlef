@@ -73,7 +73,7 @@ class Map:
 
     def update_size(self, player, fullscreen, event = None):
         if fullscreen:
-            w, h = 1960, 1080
+            w, h = player.full_size[0], player.full_size[1]
         else:
             if event:
                 w, h = (event.w, event.h)

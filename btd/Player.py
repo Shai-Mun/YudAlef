@@ -1,7 +1,6 @@
 import hashlib
 import string
 import secrets
-import socket
 import pygame
 from CollisionGrid import CollisionGrid
 from typing import Optional
@@ -47,9 +46,6 @@ class User:
 class GameUser:
 
     def __init__(self, side, name):
-        self.host_sock = None
-        self.conn_sock = None
-
         self.username = name
 
         self.side = side
@@ -71,7 +67,9 @@ class GameUser:
         self.monkeys_list = pygame.sprite.Group()
         self.grid = CollisionGrid()
 
-        self.size = [1960, 1080]
+        info = pygame.display.Info()
+        self.full_size = [info.current_w, info.current_h]
+        self.size = [self.full_size[0], self.full_size[1]]
         self.game_rect = pygame.Rect(0, 0, 0, 0)
 
         self.path = PATHS[str(side)]

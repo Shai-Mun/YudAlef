@@ -162,6 +162,9 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     key  = enc_key
     sock = socket
 
+    pygame.init()
+    pygame.display.set_caption("BTD Battles")
+
     if role == "P1":
         p1 = GameUser(1, 'You')
         p2 = GameUser(2, enemy_name)
@@ -174,9 +177,6 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
         enemy = p1
 
     sock.setblocking(False)
-
-    pygame.init()
-    pygame.display.set_caption("BTD Battles")
 
     # Configuration
     game_map = Map("galili")

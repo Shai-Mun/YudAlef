@@ -3,7 +3,7 @@ import threading
 import socket
 import traceback
 
-from user import User
+from Player import User
 from db import Database
 import smtplib
 import time
@@ -14,6 +14,8 @@ from enc_utils import send_with_size, recv_by_size, dph_serv, rsa_serv
 all_to_die = False
 db = Database()
 temp = {}
+active_lobbies = {}  # Format: {host_username: guest_username_or_None}
+lobbies_lock = threading.Lock()
 
 online_users      = {}   # {username: (sock, encryption_key)}
 online_users_lock = threading.Lock()
@@ -67,11 +69,9 @@ def handle_request(data, current_user=None):
             else:
                 c = random.randint(100000, 999999)
                 print(c)
-                print(c)
-                print(c)
-                t = send_verification_email(fields[4], c)
+                t = send_verification_email(fields[2], c)
                 salt, hashed_password = User.hash_salt_passwd(fields[1])
-                u = User(username, fields[2], fields[3], fields[4], fields[5])
+                u = User(username, fields[2])
                 u.hashed_password = hashed_password
                 u.salt = salt
                 temp[username] = {"user": u, "code": c, "time": t}
@@ -100,7 +100,7 @@ def handle_request(data, current_user=None):
                 db_salt   = db.users[username].salt
                 _, hashed_password = User.hash_salt_passwd(password, db_salt)
                 if hashed_password == db_hashed:
-                    reply = f"LOG_OK~welcome {db.users[username].fname} {db.users[username].lname}"
+                    reply = f"LOG_OK~welcome {db.users[username].username}"
                     logged_in_user = username
                 else:
                     reply = "LOG_FAIL~Wrong password"
@@ -157,6 +157,70 @@ def handle_request(data, current_user=None):
                         print(f"Failed to route PRIV_MSG to {to_user}")
                 else:
                     reply = f"MSG_FAIL~{to_user} is not online"
+
+        case "CREATE_LOBBY":
+            with lobbies_lock:
+                if current_user not in active_lobbies:
+                    active_lobbies[current_user] = None  # None means waiting for guest
+
+                # Broadcast updated list to everyone
+            with lobbies_lock:
+                open_rooms = [host for host, guest in active_lobbies.items() if guest is None]
+            broadcast(f"LOBBY_LIST~{'~'.join(open_rooms)}")
+
+        case "GET_LOBBIES":
+            with lobbies_lock:
+                open_rooms = [host for host, guest in active_lobbies.items() if guest is None]
+            reply = f"LOBBY_LIST~{'~'.join(open_rooms)}"
+
+        case "JOIN_LOBBY":
+            target_host = fields[0]
+
+            with lobbies_lock:
+                if target_host in active_lobbies and active_lobbies[target_host] is None:
+                    active_lobbies[target_host] = current_user  # Lock the room
+
+                    # Find both sockets and trigger the game launch
+                    with online_users_lock:
+                        if target_host in online_users and current_user in online_users:
+                            host_sock, host_key = online_users[target_host]
+                            guest_sock, guest_key = online_users[current_user]
+
+                            # Alert Host (Assign P1)
+                            send_with_size(host_sock, f"START_GAME~{current_user}~P1".encode(), host_key)
+                            # Alert Guest (Assign P2)
+                            send_with_size(guest_sock, f"START_GAME~{target_host}~P2".encode(), guest_key)
+
+            # Broadcast updated lobbies to hide the filled room
+            with lobbies_lock:
+                open_rooms = [host for host, guest in active_lobbies.items() if guest is None]
+            broadcast(f"LOBBY_LIST~{'~'.join(open_rooms)}")
+
+        case "GAME_ACTION":
+            # fields[0] is the sub-action (e.g., PLACE_MONKEY)
+            # Find who the opponent is in your active_lobbies dictionary
+            opponent = None
+            with lobbies_lock:
+                if current_user in active_lobbies:
+                    opponent = active_lobbies[current_user]  # current_user is host, guest is opponent
+                else:
+                    # current_user might be the guest, search for the host
+                    for host, guest in active_lobbies.items():
+                        if guest == current_user:
+                            opponent = host
+                            break
+
+            # Forward the action string cleanly to the opponent's socket
+            if opponent:
+                with online_users_lock:
+                    if opponent in online_users:
+                        opp_sock, opp_key = online_users[opponent]
+                        # Re-wrap the remaining fields back together
+                        action_payload = "~".join(fields)
+                        try:
+                            send_with_size(opp_sock, action_payload.encode(), opp_key)
+                        except Exception:
+                            print(f"Failed to relay game data to {opponent}")
 
 
     return reply, logged_in_user

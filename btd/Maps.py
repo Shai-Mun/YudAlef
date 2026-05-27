@@ -55,7 +55,6 @@ def update_loc(player, game_rect):
 
     for monkey in player.monkeys_list:
         monkey.update_monkey_rect(game_rect)
-        monkey.update_range(game_rect)
 
 class Map:
     def __init__(self, track):

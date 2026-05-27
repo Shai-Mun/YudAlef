@@ -6,7 +6,6 @@ _BLOON_NORM_W = 40 / _BASE_GAME_W
 _BLOON_NORM_H = 40 / _BASE_GAME_H
 
 DEF_SPEED = 70 / _BASE_GAME_W
-# DEF_SPEED = 70
 DEFAULT_BLOON = {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
 BLOON_DATA = {
     "black": {"speed": DEF_SPEED * 1.8, "child": "pink", "image": "black_bloon.png"},

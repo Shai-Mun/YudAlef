@@ -1,3 +1,7 @@
+import hashlib
+import string
+import secrets
+import socket
 import pygame
 from CollisionGrid import CollisionGrid
 from typing import Optional
@@ -8,9 +12,46 @@ _BASE_GAME_H = 1080
 PINK = (255, 128, 255)
 
 class User:
+    def __init__(self, username, email):
+        self.username = username
+        self.email = email
+        self.hashpass = ""
+        self.salt = ""
+
+    def __str__(self):
+        return super().__str__()
+
+    @staticmethod
+    def hash_salt_passwd(passwd, salt=None):
+        if not salt:
+            salt = User.salt_generator()
+        both = salt + passwd
+        return salt, User.hash_item(both)
+
+    @staticmethod
+    def hash_item(item):
+        """
+        return hashed 256 string
+        """
+        m = hashlib.sha256()
+        m.update(item.encode())
+        return m.hexdigest()
+
+    @staticmethod
+    def salt_generator(length=16):
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        salt = ''.join(secrets.choice(alphabet) for _ in range(length))
+        return salt
 
 
-    def __init__(self, side):
+class GameUser:
+
+    def __init__(self, side, name):
+        self.host_sock = None
+        self.conn_sock = None
+
+        self.username = name
+
         self.side = side
         self.monkey_map = {
             "monkey_0": "dart_monkey",
@@ -47,7 +88,7 @@ class User:
         if self.eco_timer >= self.ECO_INTERVAL:
             self.money += round(self.eco)
             self.eco_timer = 0  # Reset the clock for the next 6 seconds
-            print(f"Payout! Current Money: {self.money}")
+            # print(f"Payout! Current Money: {self.money}")
 
     def check_send(self, curr_time):
         if len(self.bloons_queue) > 0:
@@ -79,7 +120,6 @@ class User:
             m.check_shoot(current_time, self.bloons_list)
             m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
-            print(m.range)
             self.money += m.check_hits(self.grid)
 
 

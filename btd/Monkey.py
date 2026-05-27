@@ -60,6 +60,8 @@ class Monkey(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
+        self.range = self.original_range * (game_rect.width / _BASE_GAME_W)
+
     def update_range(self, game_rect):
         # we calculate with * 0.88 since the shop takes up 12% of the screen
         ratio_w = game_rect.width / ((1960 - int(1960 * 0.12)) // 2)
@@ -84,7 +86,6 @@ class Monkey(pygame.sprite.Sprite):
                 self.image.set_colorkey(PINK)
 
                 for i in range(-int(self.proj_count/2), math.ceil(self.proj_count/2)):
-                    print(i)
                     dest = direction.rotate(i * self.proj_angle)
                     self.projectile_list.add(Projectile(self, dest))
                     self.last_shot_time = current_time

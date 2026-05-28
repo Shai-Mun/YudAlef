@@ -5,8 +5,8 @@ from Projectile import Projectile
 
 from Player import _BASE_GAME_W, _BASE_GAME_H, PINK
 
-_MONKEY_NORM_W = 40 / _BASE_GAME_W
-_MONKEY_NORM_H = 40 / _BASE_GAME_H
+_MONKEY_NORM_W = 60 / _BASE_GAME_W
+_MONKEY_NORM_H = 60 / _BASE_GAME_H
 
 def upgrade_menu(monkeys_list, pos):
     for monkey in monkeys_list:
@@ -27,9 +27,9 @@ class Monkey(pygame.sprite.Sprite):
         self.pierce = stats['pierce']
         self.fire_rate = stats['fire_rate']
         self.image = pygame.image.load(f"assets/monkeys/{m_type}/{stats['image']}").convert()
-        self.sized_image = self.image
         self.original_image = self.image
         self.image.set_colorkey(PINK)
+        self.angle = 90
 
         self.paths = ['_', 0, 0]
 
@@ -40,7 +40,6 @@ class Monkey(pygame.sprite.Sprite):
         self.proj_angle = 0
 
         self.pos = pygame.Vector2(r_pos[0], r_pos[1])
-        self.img_ratio = (self.image.get_width()/1960, self.image.get_height()/1080)
         self.rect = self.image.get_rect()
 
         self.id = m_id
@@ -58,6 +57,7 @@ class Monkey(pygame.sprite.Sprite):
         ph = max(1, int(_MONKEY_NORM_H * game_rect.height))
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
+        self.image = pygame.transform.rotate(self.image, self.angle - 90)
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
@@ -78,21 +78,22 @@ class Monkey(pygame.sprite.Sprite):
             target = self.find_target(bloons_list)
 
             if target:
-                m_pos = pygame.math.Vector2(game_rect.x + self.pos.x * game_rect.width, game_rect.y + self.pos.y * game_rect.height)
-                b_pos = pygame.math.Vector2(game_rect.x + target.pos.x * game_rect.width, game_rect.y + target.pos.y * game_rect.height)
+                # m_pos = pygame.math.Vector2(game_rect.x + self.pos.x * game_rect.width, game_rect.y + self.pos.y * game_rect.height)
+                # b_pos = pygame.math.Vector2(game_rect.x + target.pos.x * game_rect.width, game_rect.y + target.pos.y * game_rect.height)
+                normalized_direction = target.pos - self.pos
 
-                direction = b_pos - m_pos
-                rads = math.atan2(-direction.y, direction.x)
-                angle = math.degrees(rads)
-                self.image = pygame.transform.rotate(self.sized_image, angle-90)
+                # direction = b_pos - m_pos
+                # rads = math.atan2(-direction.y, direction.x)
+                rads = math.atan2(-normalized_direction.y, normalized_direction.x)
+                self.angle = math.degrees(rads)
+                # self.image = pygame.transform.rotate(self.sized_image, angle-90)
                 self.rect = self.image.get_rect(center=self.rect.center)
-                # self.rect = self.sized_image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
                 self.image.set_colorkey(PINK)
 
+
                 for i in range(-int(self.proj_count/2), math.ceil(self.proj_count/2)):
-                    print(i)
-                    dest = direction.rotate(i * self.proj_angle)
-                    self.projectile_list.add(Projectile(self, dest))
+                    dest_norm = normalized_direction.rotate(i * self.proj_angle)
+                    self.projectile_list.add(Projectile(self, self.pos + dest_norm))
                     self.last_shot_time = current_time
 
     def find_target(self, bloons_list):
@@ -115,6 +116,9 @@ class Monkey(pygame.sprite.Sprite):
                 else:
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, getattr(self, key) - upgrade[key])
+
+    def upgrade_image(self, path, upgrade):
+        self.original_image = pygame.image.load(f"assets/monkeys/{self.type}/{self.type}{path}{upgrade}.png").convert()
 
     def move_projectiles(self, dt, game_rect):
         for p in self.projectile_list:

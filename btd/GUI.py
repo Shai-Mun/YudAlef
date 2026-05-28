@@ -364,3 +364,4 @@ class UpgradeMenu:
                     monkey.paths[0] = path
                 monkey.paths[path] += 1
                 monkey.monkey_upgrade(data)
+                monkey.upgrade_image(path, monkey.paths[path])

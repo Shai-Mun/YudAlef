@@ -24,7 +24,7 @@ MONKEY_DATA = {
             "path_1": [
                 {"name": "Long Range", "cost": 90, "original_range": 187.5, "fire_rate": 0},
                 {"name": "Enhanced Eyesight", "cost": 160, "original_range": 225, "fire_rate": -100},
-                {"name": "Spike-O-Pult", "cost": 500, "pierce": 40, "fire_rate": -600},
+                {"name": "Spike-O-Pult", "cost": 500, "pierce": 40, "fire_rate": -600, "projectile": "spike"},
                 {"name": "Juggernaut", "cost": 1900, "pierce": 100, "fire_rate": 100},
             ],
             "path_2": [

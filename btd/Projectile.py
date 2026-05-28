@@ -13,6 +13,8 @@ class Projectile(pygame.sprite.Sprite):
 
         self.range = monkey.range + 10
         self.original_range = self.range
+        self.normalized_range_limit = monkey.original_range / _BASE_GAME_W
+
         self.pierce = monkey.pierce
         self.image = pygame.image.load(f"assets/projectiles/{monkey.projectile}.png").convert()
         self.sized_image = self.image
@@ -69,10 +71,14 @@ class Projectile(pygame.sprite.Sprite):
 
             if dist <= step:
                 self.kill()
+                return
             else:
                 self.pos += direction.normalize() * step
 
             self.distance += step
+
+        if self.distance >= self.normalized_range_limit:
+            self.kill()
 
     def check_hit(self, grid):
         money_earned = 0

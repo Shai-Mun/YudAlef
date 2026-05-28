@@ -73,12 +73,15 @@ class Monkey(pygame.sprite.Sprite):
         self.range = self.original_range * (game_rect.width / _BASE_GAME_W)
 
 
-    def check_shoot(self, current_time, bloons_list):
+    def check_shoot(self, current_time, bloons_list, game_rect):
         if current_time - self.last_shot_time >= self.fire_rate:
             target = self.find_target(bloons_list)
 
             if target:
-                direction = target.pos - self.pos
+                m_pos = pygame.math.Vector2(game_rect.x + self.pos.x * game_rect.width, game_rect.y + self.pos.y * game_rect.height)
+                b_pos = pygame.math.Vector2(game_rect.x + target.pos.x * game_rect.width, game_rect.y + target.pos.y * game_rect.height)
+
+                direction = b_pos - m_pos
                 rads = math.atan2(-direction.y, direction.x)
                 angle = math.degrees(rads)
                 self.image = pygame.transform.rotate(self.sized_image, angle-90)
@@ -87,6 +90,7 @@ class Monkey(pygame.sprite.Sprite):
                 self.image.set_colorkey(PINK)
 
                 for i in range(-int(self.proj_count/2), math.ceil(self.proj_count/2)):
+                    print(i)
                     dest = direction.rotate(i * self.proj_angle)
                     self.projectile_list.add(Projectile(self, dest))
                     self.last_shot_time = current_time
@@ -94,10 +98,8 @@ class Monkey(pygame.sprite.Sprite):
     def find_target(self, bloons_list):
         target = None
         max_distance = -1
-
         for bloon in bloons_list:
             dist = pygame.math.Vector2(self.rect.center).distance_to(bloon.rect.center)
-
             if dist <= self.range:
                 if bloon.distance > max_distance:
                     max_distance = bloon.distance

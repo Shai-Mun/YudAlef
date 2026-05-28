@@ -364,4 +364,6 @@ class UpgradeMenu:
                     monkey.paths[0] = path
                 monkey.paths[path] += 1
                 monkey.monkey_upgrade(data)
-                monkey.upgrade_image(path, monkey.paths[path])
+
+                path_img = 1 if monkey.paths[path] >= monkey.paths[abs(path - 3)] else 2
+                monkey.upgrade_image(path_img, monkey.paths[path_img])

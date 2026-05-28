@@ -8,12 +8,12 @@ _BLOON_NORM_H = 40 / _BASE_GAME_H
 DEF_SPEED = 70 / _BASE_GAME_W
 DEFAULT_BLOON = {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
 BLOON_DATA = {
-    "black": {"speed": DEF_SPEED * 1.8, "child": "pink", "image": "black_bloon.png"},
-    "pink": {"speed": DEF_SPEED * 3.5, "child": "yellow", "image": "pink_bloon.png"},
-    "yellow": {"speed": DEF_SPEED * 3.2, "child": "green", "image": "yellow_bloon.png"},
-    "green": {"speed": DEF_SPEED * 1.8, "child": "blue", "image": "green_bloon.png"},
-    "blue": {"speed": DEF_SPEED * 1.4, "child": "red",  "image": "blue_bloon.png"},
-    "red": {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
+    "black": {"speed": DEF_SPEED * 1.8, "child": "pink", "dmg": 5, "image": "black_bloon.png"},
+    "pink": {"speed": DEF_SPEED * 3.5, "child": "yellow", "dmg": 4, "image": "pink_bloon.png"},
+    "yellow": {"speed": DEF_SPEED * 3.2, "child": "green", "dmg": 3, "image": "yellow_bloon.png"},
+    "green": {"speed": DEF_SPEED * 1.8, "child": "blue", "dmg": 3, "image": "green_bloon.png"},
+    "blue": {"speed": DEF_SPEED * 1.4, "child": "red", "dmg": 2, "image": "blue_bloon.png"},
+    "red": {"speed": DEF_SPEED * 1, "child": None, "dmg": 1, "image": "red_bloon.png"}
 }
 
 
@@ -32,6 +32,7 @@ class Bloon(pygame.sprite.Sprite):
 
         self.type = color.lower()
         self.speed = stats["speed"]  # Fraction of game-area width per second
+        self.dmg = stats["dmg"]
         self.side = side
         self.path = path_list  # Normalised waypoints – shared reference is fine
 
@@ -101,6 +102,7 @@ class Bloon(pygame.sprite.Sprite):
                 self.type = child_type
                 stats = BLOON_DATA[self.type]
                 self.speed = stats["speed"]
+                self.dmg = stats["dmg"]
                 self.original_image = pygame.image.load(
                     f"assets/bloons/{stats['image']}"
                 ).convert()

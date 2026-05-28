@@ -33,6 +33,7 @@ def initialize_assets():
 
 
 def handle_left_click(gui, upg_gui, pos, player, oppon):
+    global e_key, curr_monkey_id, sock
     # Priority 1: Check Upgrade Menu (if it's open)
 
     if player.active_monkey:
@@ -49,6 +50,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
 
             if player.try_purchase(upgrade_data['cost']):
                 upg_gui.gui_upgrade(player.active_monkey, 1)
+                send_with_size(sock, f"GAME_ACTION~UPGRADE_MONKEY~{player.side}~{player.active_monkey.id}~1", e_key)
             else:
                 print("Can't afford upgrade!")
 
@@ -59,6 +61,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
 
             if player.try_purchase(upgrade_data['cost']):
                 upg_gui.gui_upgrade(player.active_monkey, 2)
+                send_with_size(sock, f"GAME_ACTION~UPGRADE_MONKEY~{player.side}~{player.active_monkey.id}~2", e_key)
             else:
                 print("Can't afford upgrade!")
 
@@ -92,11 +95,12 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
             rel_y = (pos[1] - player.game_rect.y) / player.game_rect.height
 
             # Place the tower logic here
-            new_monkey = Monkey(player.selected_tower, (rel_x, rel_y))
+            new_monkey = Monkey(player.selected_tower, (rel_x, rel_y), curr_monkey_id)
             new_monkey.update_monkey_rect(player.game_rect)
             # new_monkey.update_range(player.game_rect)
 
-            send_with_size(sock, f"GAME_ACTION~PLACE_MONKEY~{player.selected_tower}~{rel_x}~{rel_y}", key)
+            send_with_size(sock, f"GAME_ACTION~PLACE_MONKEY~{player.selected_tower}~{rel_x}~{rel_y}~{curr_monkey_id}", e_key)
+            curr_monkey_id += 1
 
             player.monkeys_list.add(new_monkey)
             player.selected_tower = None
@@ -127,7 +131,7 @@ def draw_transparent_circle(surface, color, player):
 
 
 def send_bloon(sender, receiver, bloon_name):
-    global key, sock
+    global e_key, sock
 
     data = BLOON_CONFIG.get(bloon_name)
     cost = data["cost"]
@@ -139,7 +143,9 @@ def send_bloon(sender, receiver, bloon_name):
             # Create bloon with the receiver's path type
             new_bloon = Bloon(data["color"], receiver.side, receiver.path)
             receiver.bloons_queue.append((new_bloon, data["load_time"]))
-            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{data["color"]}~", key)
+            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data["color"]}~{data["load_time"]}", e_key)
+
+
 
 
 def update_all_layouts(game_map, gui, upg_gui, p, f_screen, e=None):
@@ -151,15 +157,15 @@ def update_all_layouts(game_map, gui, upg_gui, p, f_screen, e=None):
 
 
 # -------------------------------------------------------------------------------------------------------------------
-key = ""
+e_key = ""
 sock = ""
-
+curr_monkey_id = 1
 
 def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     from Player import GameUser
-    global key, sock
+    global sock, e_key
 
-    key  = enc_key
+    e_key  = enc_key
     sock = socket
 
     pygame.init()
@@ -193,25 +199,37 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     clock = pygame.time.Clock()
     running = True
 
-
     # --- 5. MAIN LOOP ---
     while running:
         try:
             # Check if the server sent us an update about the enemy
-            byte_data = recv_by_size(sock, key)
+            byte_data = recv_by_size(sock, e_key)
             if byte_data:
                 msg = byte_data.decode()
 
                 # Parse actions sent by the opponent
                 if msg.startswith("PLACE_MONKEY~"):
-                    _, m_type, rel_x, rel_y = msg.split("~")
+                    _, m_type, rel_x, rel_y, num = msg.split("~")
                     # Force enemy instance to place a monkey on their side
-                    enemy.monkeys_list.add(Monkey(m_type, (float(rel_x), float(rel_y))))
+                    enemy.monkeys_list.add(Monkey(m_type, (float(rel_x), float(rel_y)), num))
 
                 elif msg.startswith("SPAWN_BLOON~"):
-                    _, b_color = msg.split("~")
+                    _, side, b_color, loadtime = msg.split("~")
                     # Spawn a bloon on our side sent by the enemy
-                    me.bloons_list.add(Bloon(b_color, me.side, me.path))
+                    player = p1 if int(side) == 1 else p2
+                    player.bloons_queue.append((Bloon(b_color, player.side, player.path), int(loadtime)))
+
+                elif msg.startswith("UPGRADE_MONKEY~"):
+                    _, side, m_id, path = msg.split("~")
+                    print("reached!")
+                    player = p1 if int(side) == 1 else p2
+                    for monkey in player.monkeys_list:
+                        print(monkey.id)
+                        print(int(m_id))
+                        if int(monkey.id) == int(m_id):
+                            print("reached again!")
+                            upgrade_gui.gui_upgrade(monkey, int(path))
+
 
         except BlockingIOError:
             # This is normal! It means the server hasn't sent any data this frame.
@@ -228,10 +246,12 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
             elif event.type == VIDEORESIZE:
                 update_all_layouts(game_map, game_gui, upgrade_gui, me, fullscreen, event)
+                update_all_layouts(game_map, game_gui, upgrade_gui, enemy, fullscreen, event)
 
             elif event.type == KEYDOWN and event.key == pygame.K_f:
                 fullscreen = not fullscreen
                 update_all_layouts(game_map, game_gui, upgrade_gui, me, fullscreen)
+                update_all_layouts(game_map, game_gui, upgrade_gui, enemy, fullscreen)
 
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:  # LEFT CLICK
@@ -241,7 +261,8 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                     c = random.choice(colors)
                     me.bloons_list.add(Bloon(c, 1, me.path))
                     enemy.bloons_list.add(Bloon(c, 2, enemy.path))
-                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{c}~", key)
+                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{me.side}~{c}~0", e_key)
+                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{enemy.side}~{c}~0", e_key)
 
             elif event.type == MOUSEWHEEL:
                 game_gui.handle_scroll(-event.y)
@@ -253,7 +274,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
         # C. RENDERING
         game_map.draw_map((me, enemy))
-        game_gui.draw_gui(game_map.screen, pygame.time.get_ticks() / 1000, me)
+        game_gui.draw_gui(game_map.screen, pygame.time.get_ticks() / 1000, p1, p2)
 
         # Draw "Ghost" Tower
         if me.selected_tower:

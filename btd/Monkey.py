@@ -16,7 +16,7 @@ def upgrade_menu(monkeys_list, pos):
 
 
 class Monkey(pygame.sprite.Sprite):
-    def __init__(self, m_type, r_pos):
+    def __init__(self, m_type, r_pos, m_id):
         super().__init__()
         stats = MONKEY_DATA[m_type]['base']
 
@@ -43,6 +43,7 @@ class Monkey(pygame.sprite.Sprite):
         self.img_ratio = (self.image.get_width()/1960, self.image.get_height()/1080)
         self.rect = self.image.get_rect()
 
+        self.id = m_id
 
     def update_monkey_rect(self, game_rect):
         """

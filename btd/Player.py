@@ -105,7 +105,8 @@ class GameUser:
         self.grid.clear()
         for b in self.bloons_list:
             if b.move_bloon(dt):
-                self.lives -= 1
+                self.lives -= b.dmg
+                b.kill()
             b.update_bloon_rect(self.game_rect)
             # Check if bloon reached the end
             # if b.reached_end:
@@ -120,7 +121,6 @@ class GameUser:
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
             self.money += m.check_hits(self.grid)
 
-
     def try_purchase(self, cost):
         if self.money >= cost:
             self.money -= cost
@@ -133,10 +133,15 @@ class GameUser:
         shop_width = int(w * 0.12)
         game_width = (w - shop_width) // 2
 
+        # Define how much vertical space we want to reserve at the top for Username & Lives
+        self.header_height = 45
+
         if self.side == 1:
             # Player 1 occupies the left half of the remaining space
-            self.game_rect = pygame.Rect(shop_width, 0, game_width, h)
+            # We shift the top down by self.header_height and shrink the height accordingly
+            self.game_rect = pygame.Rect(shop_width, self.header_height, game_width, h - self.header_height)
         else:
             # Player 2 occupies the right half of the remaining space
-            self.game_rect = pygame.Rect(shop_width + game_width, 0, game_width, h)
+            self.game_rect = pygame.Rect(shop_width + game_width, self.header_height, game_width,
+                                         h - self.header_height)
 

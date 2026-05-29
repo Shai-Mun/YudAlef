@@ -325,9 +325,10 @@ class UpgradeMenu:
     def draw_upgrade_gui(self, surface, monkey):
         pygame.draw.rect(surface, self.COLOR_BG, self.rect)
         pygame.draw.rect(surface, (120, 90, 60), self.portrait_rect)
-        if monkey.original_image:
-            img = pygame.transform.scale(monkey.original_image, (self.portrait_rect.w - 10, self.portrait_rect.h - 10))
-            surface.blit(img, (self.portrait_rect.x + 5, self.portrait_rect.y + 5))
+        img = pygame.image.load(f"assets/monkeys/{monkey.type}/{MONKEY_DATA[monkey.type]['image']}").convert()
+        img = pygame.transform.scale(img, (self.portrait_rect.w - 10, self.portrait_rect.h - 10))
+        img.set_colorkey(PINK)
+        surface.blit(img, (self.portrait_rect.x + 5, self.portrait_rect.y + 5))
 
         for btn in self.buttons.values():
             if 'path_' in btn.name:

@@ -257,7 +257,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                 if event.button == 1:  # LEFT CLICK
                     handle_left_click(game_gui, upgrade_gui, event.pos, me, enemy)
                 elif event.button == 2:  # SCROLL CLICK (Random Spawner)
-                    colors = ["red", "blue", "green", "yellow", "pink", "black"]
+                    colors = ["red", "blue", "green", "yellow", "pink", "black", "white", "rainbow", "lead", "zebra"]
                     c = random.choice(colors)
                     me.bloons_list.add(Bloon(c, 1, me.path))
                     enemy.bloons_list.add(Bloon(c, 2, enemy.path))

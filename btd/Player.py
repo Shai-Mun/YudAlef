@@ -119,7 +119,11 @@ class GameUser:
             m.check_shoot(current_time, self.bloons_list, self.game_rect)
             m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
-            self.money += m.check_hits(self.grid)
+            children, money = m.check_hits(self.grid)
+            self.money += money
+            if len(children) > 0:
+                for child in children:
+                    self.bloons_list.add(child)
 
     def try_purchase(self, cost):
         if self.money >= cost:

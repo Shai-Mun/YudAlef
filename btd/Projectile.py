@@ -1,6 +1,8 @@
 import pygame
 import math
 
+from numpy.matlib import empty
+
 from btd.Player import _BASE_GAME_W, _BASE_GAME_H, PINK
 
 _PROJ_NORM_W = 30 / _BASE_GAME_W
@@ -82,19 +84,23 @@ class Projectile(pygame.sprite.Sprite):
 
     def check_hit(self, grid):
         money_earned = 0
-
+        children = []
         targets = grid.get_nearby_bloons(self)
         hits = pygame.sprite.spritecollide(self, targets, False)
 
         for bloon in hits:
             if bloon not in self.hit_bloons and self.pierce > 0:
                 # The bloon tells us how much money we just made
-                money_earned += bloon.take_damage(1)
+                curr_children, money = bloon.take_damage(1)
+                money_earned += money
+
+                if curr_children:
+                    children.extend(curr_children)
+
                 self.hit_bloons.add(bloon)
                 self.pierce -= 1
 
                 if self.pierce <= 0:
                     self.kill()
                     break
-
-        return money_earned
+        return children, money_earned

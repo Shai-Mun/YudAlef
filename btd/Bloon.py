@@ -8,7 +8,11 @@ _BLOON_NORM_H = 40 / _BASE_GAME_H
 DEF_SPEED = 65 / _BASE_GAME_W
 DEFAULT_BLOON = {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
 BLOON_DATA = {
-    "black": {"speed": DEF_SPEED * 1.8, "child": "pink", "dmg": 5, "image": "black_bloon.png"},
+    "rainbow": {"speed": DEF_SPEED * 1, "child": "zebra~2", "dmg": 47, "image": "rainbow_bloon.png"},
+    "zebra": {"speed": DEF_SPEED * 1, "child": "black~1~white~1", "dmg": 23, "image": "zebra_bloon.png", "immunity": ["freeze", "explosion"]},
+    "lead": {"speed": DEF_SPEED * 1, "child": "black~2", "dmg": 23, "image": "lead_bloon.png", "immunity": ["sharp"]},
+    "white": {"speed": DEF_SPEED * 2, "child": "pink~2", "dmg": 11, "image": "white_bloon.png", "immunity": ["freeze"]},
+    "black": {"speed": DEF_SPEED * 1.8, "child": "pink~2", "dmg": 11, "image": "black_bloon.png", "immunity": ["explosion"]},
     "pink": {"speed": DEF_SPEED * 3.5, "child": "yellow", "dmg": 4, "image": "pink_bloon.png"},
     "yellow": {"speed": DEF_SPEED * 3.2, "child": "green", "dmg": 3, "image": "yellow_bloon.png"},
     "green": {"speed": DEF_SPEED * 1.8, "child": "blue", "dmg": 3, "image": "green_bloon.png"},
@@ -19,7 +23,7 @@ BLOON_DATA = {
 
 
 class Bloon(pygame.sprite.Sprite):
-    def __init__(self, color: str, side: int, path_list: list):
+    def __init__(self, color: str, side: int, path_list: list, child_properties = None):
         """
         Args:
             color:     Bloon colour key ("red", "blue", …).
@@ -46,7 +50,10 @@ class Bloon(pygame.sprite.Sprite):
         self.original_image.set_colorkey(PINK)
         self.image = self.original_image
         self.rect = self.image.get_rect()
-
+        if child_properties:
+            self.target_node = child_properties["target_node"]
+            self.distance = child_properties["distance"]
+            self.pos = child_properties["pos"]
     def update_bloon_rect(self, game_rect):
         """
         Convert the normalised pos into screen pixels and rebuild self.image /
@@ -74,7 +81,7 @@ class Bloon(pygame.sprite.Sprite):
         if self.target_node >= len(self.path):
             return True  # Escaped – caller should deduct lives and kill()
 
-        target = self.path[self.target_node]
+        target = pygame.Vector2(self.path[self.target_node])
         direction = target - self.pos
         dist = direction.length()
         step = self.speed * (dt / 1000)  # Normalised step this frame
@@ -88,27 +95,37 @@ class Bloon(pygame.sprite.Sprite):
         self.distance += step
         return False
 
-    def take_damage(self, dmg: int) -> int:
+    def take_damage(self, dmg: int):
         """
         Apply damage, downgrading the bloon layer by layer.
 
         Returns:
             Number of layers popped (used to award money to the player).
         """
+        children = []
         popped = 0
         for _ in range(dmg):
             child_type = BLOON_DATA[self.type]["child"]
             if child_type:
-                self.type = child_type
-                stats = BLOON_DATA[self.type]
-                self.speed = stats["speed"]
-                self.dmg = stats["dmg"]
-                self.original_image = pygame.image.load(
-                    f"assets/bloons/{stats['image']}"
-                ).convert()
-                self.original_image.set_colorkey(PINK)
+                if "~" in child_type:
+                    fields = child_type.split("~")
+                    for i in range(child_type.count("~") // 2 + 1):
+                        for _ in range(int(fields[2*i+1])):
+                            child_properties = {"target_node": self.target_node, "distance": self.distance, "pos": self.pos}
+                            child = Bloon(fields[2*i], self.side, self.path, child_properties)
+                            children.append(child)
+                    self.kill()
+                else:
+                    self.type = child_type
+                    stats = BLOON_DATA[self.type]
+                    self.speed = stats["speed"]
+                    self.dmg = stats["dmg"]
+                    self.original_image = pygame.image.load(
+                        f"assets/bloons/{stats['image']}"
+                    ).convert()
+                    self.original_image.set_colorkey(PINK)
                 popped += 1
             else:
                 self.kill()
-                return popped
-        return popped
+                return children, popped
+        return children, popped

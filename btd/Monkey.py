@@ -126,8 +126,12 @@ class Monkey(pygame.sprite.Sprite):
             p.update_proj_rect(game_rect)
 
     def check_hits(self, grid):
+        children = []
         total_monkey_earnings = 0
         for p in self.projectile_list:
-            total_monkey_earnings += p.check_hit(grid)
-        return total_monkey_earnings
+            curr_children, curr_earnings = p.check_hit(grid)
+            if curr_children:
+                children.extend(curr_children)
+            total_monkey_earnings += curr_earnings
+        return children, total_monkey_earnings
 

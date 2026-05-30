@@ -1,7 +1,10 @@
+import random
+
 import pygame
 import math
 from Databases import MONKEY_DATA
 from Projectile import Projectile
+from Databases import SOUNDS
 
 from Player import _BASE_GAME_W, _BASE_GAME_H, PINK
 
@@ -26,6 +29,7 @@ class Monkey(pygame.sprite.Sprite):
         self.range = 0.0
         self.pierce = stats['pierce']
         self.fire_rate = stats['fire_rate']
+        self.dmg = stats['dmg']
         self.image = pygame.image.load(f"assets/monkeys/{m_type}/{stats['image']}").convert()
         self.original_image = self.image
         self.image.set_colorkey(PINK)
@@ -36,8 +40,8 @@ class Monkey(pygame.sprite.Sprite):
         self.projectile = stats['projectile']
         self.projectile_list = pygame.sprite.Group()
         self.last_shot_time = 0
-        self.proj_count = 1
-        self.proj_angle = 0
+        self.proj_count = stats['proj_count']
+        self.proj_angle = stats['proj_angle']
         self.projectile_speed = stats['projectile_speed']
         self.proj_dist_mult = stats['proj_dist_mult']
         self.weaknesses = stats['weaknesses'].copy()
@@ -46,6 +50,15 @@ class Monkey(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         self.id = m_id
+
+        self.hitscan = stats.get('hitscan', False)  # Check if hitscan weapon
+
+        # Buffer to hold hitscan rewards until Player.py asks for them
+        self.pending_children = []
+        self.pending_money = 0
+
+        if "size" in stats:
+            self.size = stats['size']
 
     def update_monkey_rect(self, game_rect):
         """
@@ -60,7 +73,8 @@ class Monkey(pygame.sprite.Sprite):
         ph = max(1, int(_MONKEY_NORM_H * game_rect.height))
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
-        self.image = pygame.transform.rotate(self.image, self.angle - 90)
+        if self.type is not "tack_shooter":
+            self.image = pygame.transform.rotate(self.image, self.angle - 90)
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
@@ -76,7 +90,7 @@ class Monkey(pygame.sprite.Sprite):
         self.range = self.original_range * (game_rect.width / _BASE_GAME_W)
 
 
-    def check_shoot(self, current_time, bloons_list, game_rect):
+    def check_shoot(self, current_time, bloons_list):
         if current_time - self.last_shot_time >= self.fire_rate:
             target = self.find_target(bloons_list)
 
@@ -93,10 +107,31 @@ class Monkey(pygame.sprite.Sprite):
                 self.rect = self.image.get_rect(center=self.rect.center)
                 self.image.set_colorkey(PINK)
 
+                # if self.projectile_speed >= 2000:
 
-                for i in range(-int(self.proj_count/2), math.ceil(self.proj_count/2)):
-                    dest_norm = normalized_direction.rotate(i * self.proj_angle)
-                    self.projectile_list.add(Projectile(self, self.pos + dest_norm))
+                if self.hitscan:
+                    # Instantly apply ALL damage to the single target.
+                    # Because we updated Bloon.py, it will perfectly calculate
+                    # the layer downgrades and return the exact surviving children!
+                    children, money = target.take_damage(self.dmg)
+                    self.pending_money += money
+
+                    if children:
+                        self.pending_children.extend(children)
+
+                    # Play the popping sound
+                    num = random.randint(1, 4)
+                    pygame.mixer.Sound(f"assets/sounds/{SOUNDS['pop' + str(num)]}").play()
+
+                    self.last_shot_time = current_time
+
+                else:
+                    # Standard Projectile Spawning (keep your existing code here)
+                    normalized_direction = target.pos - self.pos
+                    for i in range(-int(self.proj_count / 2), math.ceil(self.proj_count / 2)):
+                        dest_norm = normalized_direction.rotate(i * self.proj_angle)
+                        self.projectile_list.add(Projectile(self, self.pos + dest_norm))
+
                     self.last_shot_time = current_time
 
     def find_target(self, bloons_list):
@@ -122,7 +157,6 @@ class Monkey(pygame.sprite.Sprite):
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, upgrade[key])
 
-
     def upgrade_image(self, path, upgrade):
         self.original_image = pygame.image.load(f"assets/monkeys/{self.type}/{self.type}{path}{upgrade}.png").convert()
 
@@ -134,6 +168,15 @@ class Monkey(pygame.sprite.Sprite):
     def check_hits(self, grid):
         children = []
         total_monkey_earnings = 0
+
+        if self.pending_money > 0:
+            total_monkey_earnings += self.pending_money
+            self.pending_money = 0
+
+        if self.pending_children:
+            children.extend(self.pending_children)
+            self.pending_children = []
+
         for p in self.projectile_list:
             curr_children, curr_earnings = p.check_hit(grid)
             if curr_children:

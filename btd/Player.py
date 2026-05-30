@@ -52,8 +52,8 @@ class GameUser:
         self.side = side
         self.monkey_map = {
             "monkey_0": "dart_monkey",
-            "monkey_1": "dart_monkey",
-            "monkey_2": "dart_monkey",
+            "monkey_1": "tack_shooter",
+            "monkey_2": "sniper_monkey",
             "monkey_3": "dart_monkey"
         }
         self.lives = 200
@@ -121,7 +121,7 @@ class GameUser:
             self.grid.insert_bloon(b)
 
         for m in self.monkeys_list:
-            m.check_shoot(current_time, self.bloons_list, self.game_rect)
+            m.check_shoot(current_time, self.bloons_list)
             m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
             children, money = m.check_hits(self.grid)

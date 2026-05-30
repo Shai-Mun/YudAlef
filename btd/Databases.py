@@ -45,11 +45,14 @@ MONKEY_DATA = {
             "original_range": 150,
             "pierce": 1,
             "fire_rate": 940,  # ms
+            "dmg": 1,
             "image": "dart_base.png",
             "projectile": "dart",
             "weaknesses": ["lead"],
             "projectile_speed": 805,
-            "proj_dist_mult": 1.07
+            "proj_dist_mult": 1.07,
+            "proj_count": 1,
+            "proj_angle": 0
         },
         "upgrades": {
             "path_1": [
@@ -63,6 +66,89 @@ MONKEY_DATA = {
                 {"name": "Razor Sharp Shots", "cost": 170, "pierce": 5},
                 {"name": "Triple Darts", "cost": 475, "pierce": 4, "proj_count": 3, "proj_angle": 30},
                 {"name": "Super Monkey Fan Club", "cost": 8000, "pierce": 4},
+            ]
+        }
+    },
+    "tack_shooter": {
+        "image": 'Tack Shooter.png',
+        "base": {
+            "cost": 280,
+            "original_range": 90,  # Very short base range
+            "pierce": 1,
+            "fire_rate": 850,  # ms
+            "dmg": 1,
+            "image": "tack_base.png",
+            "projectile": "tack",
+            "weaknesses": ["lead"],
+            "projectile_speed": 700,
+            "proj_dist_mult": 0.8,
+
+            # This combination shoots 8 projectiles evenly in a 360-degree circle
+            "proj_count": 8,
+            "proj_angle": 45,
+            "size": (20, 10)
+        },
+        "upgrades": {
+            "path_1": [
+                # Note: Because of your Monkey.py logic (getattr(self, key) - upgrade[key]),
+                # positive fire_rate numbers here will SUBTRACT from the ms delay, making it shoot faster!
+                {"name": "Faster Shooting", "cost": 150, "fire_rate": 150},
+                {"name": "Even Faster Shooting", "cost": 225, "fire_rate": 200},
+
+                # Tack Sprayer doubles the tacks. 360 / 16 tacks = 22.5 degree angle
+                {"name": "Tack Sprayer", "cost": 400, "proj_count": 16, "proj_angle": 22.5},
+
+                # Ring of fire converts it into a single, massive piercing AOE blast that can pop lead
+                {"name": "Ring of Fire", "cost": 2500, "pierce": 60, "projectile": "fire", "proj_count": 1,
+                 "weaknesses": "lead"}
+            ],
+            "path_2": [
+                # Your code overwrites variables, so we provide the NEW total range here
+                {"name": "Extra Range Tacks", "cost": 100, "original_range": 115},
+                {"name": "Super Range Tacks", "cost": 225, "original_range": 140},
+
+                # Blade shooter changes the projectile entirely and gives them more pierce/range
+                {"name": "Blade Shooter", "cost": 680, "pierce": 2, "projectile": "blade", "projectile_speed": 850,
+                 "proj_dist_mult": 1.1},
+
+                # Maelstrom gives standard attacks massive pierce.
+                # (If you add an ability system later, you would trigger it from this tier!)
+                {"name": "Blade Maelstrom", "cost": 2700, "pierce": 5, "fire_rate": 50}
+            ]
+        }
+    },
+    "sniper_monkey": {
+        "image": 'Sniper Monkey.png',
+        "base": {
+            "cost": 350,
+            "original_range": 3000,  # 3000 covers the entire screen easily
+            "pierce": 1,
+            "fire_rate": 1930,  # ms (Shoots very slowly at first)
+            "dmg": 1,  # Snipers rely heavily on damage upgrades!
+            "image": "sniper_base.png",
+            "hitscan": True,
+            "projectile": None,
+            "weaknesses": ["lead"],
+            "projectile_speed": 4000,  # Extremely fast bullet
+            "proj_dist_mult": 1.0,
+            "proj_count": 1,
+            "proj_angle": 0
+        },
+        "upgrades": {
+            "path_1": [
+                # Empties the weaknesses array so it can pop lead
+                {"name": "Full Metal Jacket", "cost": 350, "weaknesses": "lead", "dmg": 4},
+                {"name": "Point Five Oh", "cost": 400, "dmg": 7},
+
+                # Massive damage buffs
+                {"name": "Deadly Precision", "cost": 1800, "dmg": 18},
+                {"name": "Cripple MOAB", "cost": 5500, "dmg": 30}
+            ],
+            "path_2": [
+                {"name": "Faster Firing", "cost": 400, "fire_rate": 570},  # Down to 1360ms
+                {"name": "Night Vision Goggles", "cost": 400},  # Down to 650ms
+                {"name": "Semi-Automatic Rifle", "cost": 2750, "fire_rate": 1010},  # Down to 350ms
+                {"name": "Supply Drop", "cost": 4200}  # Ability Gives 500-1000 cash
             ]
         }
     }

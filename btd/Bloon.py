@@ -98,34 +98,67 @@ class Bloon(pygame.sprite.Sprite):
     def take_damage(self, dmg: int):
         """
         Apply damage, downgrading the bloon layer by layer.
-
-        Returns:
-            Number of layers popped (used to award money to the player).
+        Handles high-damage overflow perfectly for multi-child bloons.
         """
         children = []
         popped = 0
-        for _ in range(dmg):
+        rem_dmg = dmg
+
+        while rem_dmg > 0:
             child_type = BLOON_DATA[self.type]["child"]
+
             if child_type:
                 if "~" in child_type:
-                    fields = child_type.split("~")
-                    for i in range(child_type.count("~") // 2 + 1):
-                        for _ in range(int(fields[2*i+1])):
-                            child_properties = {"target_node": self.target_node, "distance": self.distance, "pos": self.pos}
-                            child = Bloon(fields[2*i], self.side, self.path, child_properties)
-                            children.append(child)
+                    # 1. The bloon splits! Kill the parent layer.
                     self.kill()
+                    popped += 1
+                    rem_dmg -= 1
+
+                    # 2. Spawn the children
+                    fields = child_type.split("~")
+                    spawned_children = []
+                    for i in range(len(fields) // 2):
+                        c_type = fields[2 * i]
+                        count = int(fields[2 * i + 1])
+                        for _ in range(count):
+                            child_properties = {"target_node": self.target_node, "distance": self.distance,
+                                                "pos": self.pos}
+                            spawned_children.append(Bloon(c_type, self.side, self.path, child_properties))
+
+                    # 3. Distribute any leftover damage evenly to the new children!
+                    if rem_dmg > 0:
+                        dmg_per_child = rem_dmg // len(spawned_children)
+                        extra_dmg = rem_dmg % len(spawned_children)
+
+                        for idx, child in enumerate(spawned_children):
+                            child_dmg = dmg_per_child + (1 if idx < extra_dmg else 0)
+                            if child_dmg > 0:
+                                # Recursively damage the child!
+                                sub_children, sub_popped = child.take_damage(child_dmg)
+                                children.extend(sub_children)
+                                popped += sub_popped
+                            else:
+                                children.append(child)
+                    else:
+                        children.extend(spawned_children)
+
+                    return children, popped
+
                 else:
+                    # Single child downgrade (e.g. Blue -> Red)
                     self.type = child_type
                     stats = BLOON_DATA[self.type]
                     self.speed = stats["speed"]
-                    self.dmg = stats["dmg"]
-                    self.original_image = pygame.image.load(
-                        f"assets/bloons/{stats['image']}"
-                    ).convert()
+                    self.dmg = stats.get("dmg", 1)
+                    self.original_image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
                     self.original_image.set_colorkey(PINK)
-                popped += 1
+
+                    popped += 1
+                    rem_dmg -= 1
             else:
+                # No child (Red Bloon popping completely)
                 self.kill()
+                popped += 1
                 return children, popped
+
         return children, popped

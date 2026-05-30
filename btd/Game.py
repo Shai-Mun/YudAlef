@@ -28,6 +28,8 @@ def initialize_assets():
     from Player import PINK
     return {
         "dart_monkey": load_sprite("assets/monkeys/dart_monkey/dart_base.png", PINK),
+        "tack_shooter": load_sprite("assets/monkeys/tack_shooter/tack_base.png", PINK),
+        "sniper_monkey": load_sprite("assets/monkeys/sniper_monkey/sniper_base.png", PINK),
         # Add other monkeys here as you create them
     }
 
@@ -35,6 +37,12 @@ def initialize_assets():
 def handle_left_click(gui, upg_gui, pos, player, oppon):
     global e_key, curr_monkey_id, sock
     # Priority 1: Check Upgrade Menu (if it's open)
+
+    clicked_m = upgrade_menu(player.monkeys_list, pos)
+    if clicked_m:
+        player.active_monkey = clicked_m
+        player.selected_tower = None  # Don't hold a tower while upgrading
+        return
 
     if player.active_monkey:
         action = upg_gui.get_click(pos)
@@ -47,7 +55,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
 
         elif action == "path1":
             # Get the cost of the NEXT upgrade
-            current_p1_level = player.active_monkey.paths[1]
+            current_p1_level = min(player.active_monkey.paths[1], 3)
             upgrade_data = MONKEY_DATA[player.active_monkey.type]['upgrades']['path_1'][current_p1_level]
 
             if player.try_purchase(upgrade_data['cost']):
@@ -58,7 +66,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
 
         elif action == "path2":
             # Get the cost of the NEXT upgrade
-            current_p2_level = player.active_monkey.paths[2]
+            current_p2_level = min(player.active_monkey.paths[2], 3)
             upgrade_data = MONKEY_DATA[player.active_monkey.type]['upgrades']['path_2'][current_p2_level]
 
             if player.try_purchase(upgrade_data['cost']):
@@ -83,11 +91,6 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
         return
 
     # Priority 3: Check for Monkey selection on the map
-    clicked_m = upgrade_menu(player.monkeys_list, pos)
-    if clicked_m:
-        player.active_monkey = clicked_m
-        player.selected_tower = None  # Don't hold a tower while upgrading
-        return
 
     # Priority 4: Place a Tower
     if player.selected_tower:
@@ -128,6 +131,7 @@ def draw_transparent_rectangle(screen, c, enemy):
 
 def draw_transparent_circle(screen, c, player):
     radius = player.active_monkey.range
+    if player.active_monkey.type is "sniper_monkey": radius = 20
     center = (player.active_monkey.pos.x * player.game_rect.width + player.game_rect.x,
               player.active_monkey.pos.y * player.game_rect.height + player.game_rect.y)
     # 1. Create a temporary surface with an alpha channel

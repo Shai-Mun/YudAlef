@@ -13,6 +13,7 @@ _PROJ_NORM_H = 30 / _BASE_GAME_H
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, monkey, dest):
         super().__init__()
+        global _PROJ_NORM_W, _PROJ_NORM_H
 
         self.normalized_range_limit = (monkey.original_range * monkey.proj_dist_mult) / _BASE_GAME_W
 
@@ -23,6 +24,7 @@ class Projectile(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.speed = monkey.projectile_speed / _BASE_GAME_W
         self.weaknesses = monkey.weaknesses
+        self.dmg = monkey.dmg
 
         self.angle = 0
         self.distance = 0
@@ -36,6 +38,13 @@ class Projectile(pygame.sprite.Sprite):
         self.hit_bloons = set()
 
         pygame.mixer.init()
+        try:
+            if monkey.size:
+                _PROJ_NORM_W = monkey.size[0] / _BASE_GAME_W
+                _PROJ_NORM_H = monkey.size[1] / _BASE_GAME_H
+        except:
+            pass
+
 
     def update_proj_rect(self, game_rect):
         """
@@ -83,7 +92,7 @@ class Projectile(pygame.sprite.Sprite):
             if bloon not in self.hit_bloons and self.pierce > 0:
                 # The bloon tells us how much money we just made
                 if bloon.type not in self.weaknesses:
-                    curr_children, money = bloon.take_damage(1)
+                    curr_children, money = bloon.take_damage(self.dmg)
                     money_earned += money
 
                     if curr_children:

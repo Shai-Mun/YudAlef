@@ -38,6 +38,9 @@ class Monkey(pygame.sprite.Sprite):
         self.last_shot_time = 0
         self.proj_count = 1
         self.proj_angle = 0
+        self.projectile_speed = stats['projectile_speed']
+        self.proj_dist_mult = stats['proj_dist_mult']
+        self.weaknesses = stats['weaknesses'].copy()
 
         self.pos = pygame.Vector2(r_pos[0], r_pos[1])
         self.rect = self.image.get_rect()
@@ -111,11 +114,14 @@ class Monkey(pygame.sprite.Sprite):
         print(upgrade)
         for key in upgrade:
             if key != 'name':
-                if key != 'fire_rate':
-                    setattr(self, key, upgrade[key])
+                if key == 'fire_rate':
+                    setattr(self, key, getattr(self, key) - upgrade[key])
+                elif key == 'weaknesses':
+                    getattr(self, key).remove(upgrade[key])
                 else:
                     # This dynamically sets the attribute named after whatever is in 'key'
-                    setattr(self, key, getattr(self, key) - upgrade[key])
+                    setattr(self, key, upgrade[key])
+
 
     def upgrade_image(self, path, upgrade):
         self.original_image = pygame.image.load(f"assets/monkeys/{self.type}/{self.type}{path}{upgrade}.png").convert()

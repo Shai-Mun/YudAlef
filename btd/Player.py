@@ -5,6 +5,7 @@ import pygame
 from CollisionGrid import CollisionGrid
 from typing import Optional
 from Maps import PATHS
+from Databases import SOUNDS
 
 _BASE_GAME_W = (1960 - int(1960 * 0.12)) // 2  # 862 px reference
 _BASE_GAME_H = 1080
@@ -67,6 +68,8 @@ class GameUser:
         self.monkeys_list = pygame.sprite.Group()
         self.grid = CollisionGrid()
 
+        pygame.mixer.init()
+
         info = pygame.display.Info()
         self.full_size = [info.current_w, info.current_h]
         self.size = [self.full_size[0], self.full_size[1]]
@@ -80,12 +83,14 @@ class GameUser:
 
         self.calc_game_rect()
 
+
     def update_eco(self, dt):
         self.eco_timer += dt
 
         if self.eco_timer >= self.ECO_INTERVAL:
             self.money += round(self.eco)
             self.eco_timer = 0  # Reset the clock for the next 6 seconds
+            pygame.mixer.Sound(f"assets/sounds/{SOUNDS["cash"]}").play()
             # print(f"Payout! Current Money: {self.money}")
 
     def check_send(self, curr_time):

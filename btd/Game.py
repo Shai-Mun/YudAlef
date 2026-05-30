@@ -6,7 +6,7 @@ from Monkey import Monkey, upgrade_menu
 from GUI import GameInterface, UpgradeMenu
 from Databases import BLOON_CONFIG
 from Bloon import Bloon
-from Databases import MONKEY_DATA
+from Databases import MONKEY_DATA, SOUNDS
 from enc_utils import recv_by_size, send_with_size
 
 
@@ -40,7 +40,9 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
         action = upg_gui.get_click(pos)
         if action == "sell":
             player.active_monkey.kill()
+            send_with_size(sock, f"GAME_ACTION~SELL_MONKEY~{player.side}~{player.active_monkey.id}", e_key)
             player.active_monkey = None
+            pygame.mixer.Sound(f"assets/sounds/{SOUNDS["sell"]}").play()
             return
 
         elif action == "path1":
@@ -75,6 +77,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
         if 'monkey_' in menu_action:
             player.selected_tower = player.monkey_map.get(menu_action)
             player.active_monkey = None
+            # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
         elif 'bloon_' in menu_action:
             send_bloon(player, oppon, menu_action)
         return
@@ -87,33 +90,43 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
         return
 
     # Priority 4: Place a Tower
-    if player.selected_tower and player.game_rect.x < pos[0] < player.game_rect.x + player.game_rect.width:
-        cost = MONKEY_DATA[player.selected_tower]['base']['cost']
-        if player.try_purchase(cost):
+    if player.selected_tower:
+        if player.game_rect.x < pos[0] < player.game_rect.x + player.game_rect.width:
+            cost = MONKEY_DATA[player.selected_tower]['base']['cost']
+            if player.try_purchase(cost):
 
-            rel_x = (pos[0] - player.game_rect.x) / player.game_rect.width
-            rel_y = (pos[1] - player.game_rect.y) / player.game_rect.height
+                rel_x = (pos[0] - player.game_rect.x) / player.game_rect.width
+                rel_y = (pos[1] - player.game_rect.y) / player.game_rect.height
 
-            # Place the tower logic here
-            new_monkey = Monkey(player.selected_tower, (rel_x, rel_y), curr_monkey_id)
-            new_monkey.update_monkey_rect(player.game_rect)
-            # new_monkey.update_range(player.game_rect)
+                # Place the tower logic here
+                new_monkey = Monkey(player.selected_tower, (rel_x, rel_y), curr_monkey_id)
+                new_monkey.update_monkey_rect(player.game_rect)
+                # new_monkey.update_range(player.game_rect)
+                pygame.mixer.Sound(f"assets/sounds/{SOUNDS["place"]}").play()
 
-            send_with_size(sock, f"GAME_ACTION~PLACE_MONKEY~{player.selected_tower}~{rel_x}~{rel_y}~{curr_monkey_id}", e_key)
-            curr_monkey_id += 1
+                send_with_size(sock, f"GAME_ACTION~PLACE_MONKEY~{player.selected_tower}~{rel_x}~{rel_y}~{curr_monkey_id}", e_key)
+                curr_monkey_id += 1
 
-            player.monkeys_list.add(new_monkey)
-            player.selected_tower = None
+                player.monkeys_list.add(new_monkey)
+                player.selected_tower = None
 
 
+            else:
+                print("Not enough money for this tower!")
         else:
-            print("Not enough money for this tower!")
+            player.selected_tower = None
     else:
         # Clicked empty map space
         player.active_monkey = None
 
 
-def draw_transparent_circle(surface, color, player):
+def draw_transparent_rectangle(screen, c, enemy):
+    temp_surface = pygame.Surface((enemy.game_rect.width, enemy.game_rect.height), pygame.SRCALPHA)
+    pygame.draw.rect(temp_surface, c, (0, 0, enemy.game_rect.width, enemy.game_rect.height))
+    screen.blit(temp_surface, (enemy.game_rect.x, enemy.game_rect.y))
+
+
+def draw_transparent_circle(screen, c, player):
     radius = player.active_monkey.range
     center = (player.active_monkey.pos.x * player.game_rect.width + player.game_rect.x,
               player.active_monkey.pos.y * player.game_rect.height + player.game_rect.y)
@@ -123,11 +136,11 @@ def draw_transparent_circle(surface, color, player):
 
     # 2. Draw the circle onto the temp surface
     # Note: center is (radius, radius) because it's relative to the temp surface
-    pygame.draw.circle(temp_surface, color, (radius, radius), radius)
+    pygame.draw.circle(temp_surface, c, (radius, radius), radius)
 
     # 3. Blit the temp surface onto the main screen
     # Adjust position so the center matches the intended coordinates
-    surface.blit(temp_surface, (center[0] - radius, center[1] - radius))
+    screen.blit(temp_surface, (center[0] - radius, center[1] - radius))
 
 
 def send_bloon(sender, receiver, bloon_name):
@@ -169,6 +182,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     sock = socket
 
     pygame.init()
+    pygame.mixer.init()
     pygame.display.set_caption("BTD Battles")
 
     if role == "P1":
@@ -221,16 +235,17 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
                 elif msg.startswith("UPGRADE_MONKEY~"):
                     _, side, m_id, path = msg.split("~")
-                    print("reached!")
                     player = p1 if int(side) == 1 else p2
                     for monkey in player.monkeys_list:
-                        print(monkey.id)
-                        print(int(m_id))
                         if int(monkey.id) == int(m_id):
-                            print("reached again!")
                             upgrade_gui.gui_upgrade(monkey, int(path))
 
-
+                elif msg.startswith("SELL_MONKEY~"):
+                    _, side, m_id = msg.split("~")
+                    player = p1 if int(side) == 1 else p2
+                    for monkey in player.monkeys_list:
+                        if int(monkey.id) == int(m_id):
+                            monkey.kill()
         except BlockingIOError:
             # This is normal! It means the server hasn't sent any data this frame.
             pass
@@ -282,6 +297,8 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
             img.set_alpha(150)
             rect = img.get_rect(center=pygame.mouse.get_pos())
             game_map.screen.blit(img, rect)
+            draw_transparent_rectangle(game_map.screen, (255, 0, 0, 128), enemy)
+
 
         # Draw Upgrade Menu
         if me.active_monkey:

@@ -1,10 +1,11 @@
 import pygame
-from Databases import MONKEY_DATA, BLOON_CONFIG
+from Databases import MONKEY_DATA, BLOON_CONFIG, SOUNDS
 from btd.Bloon import BLOON_DATA
 
 from Player import PINK
 
 pygame.font.init()
+pygame.mixer.init()
 UI_FONT = pygame.font.SysFont("Arial", 18, bold=True)
 COST_FONT = pygame.font.SysFont("Arial", 16, bold=True) # Slightly smaller for costs
 
@@ -140,7 +141,7 @@ class GameInterface:
         # Check if we need to instantiate buttons for the first time
         create_bloons = len(self.bloon_buttons) == 0
 
-        for i in range(16):
+        for i in range(24):
             col, row = i % 2, i // 2
             x = b_margin + col * (b_btn_w + b_margin)
             y = self.monkey_area_h + b_margin + row * (b_btn_h + b_margin)
@@ -344,8 +345,7 @@ class UpgradeMenu:
     def gui_upgrade(self, monkey, path, next_u=1):
         target_btn = self.buttons[f"path{path}"]
 
-        if (monkey.paths[path] == 3 and next_u == 1) or monkey.paths[path] == 4 or (
-                monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
+        if monkey.paths[path] == 4 or (monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
             target_btn.label = "MAXED"
             target_btn.image = None
             target_btn.cost = 0
@@ -365,6 +365,7 @@ class UpgradeMenu:
                     monkey.paths[0] = path
                 monkey.paths[path] += 1
                 monkey.monkey_upgrade(data)
+                pygame.mixer.Sound(f"assets/sounds/{SOUNDS["upgrade"]}").play()
 
                 path_img = 1 if monkey.paths[1] >= monkey.paths[2] else 2
                 monkey.upgrade_image(path_img, monkey.paths[path_img])

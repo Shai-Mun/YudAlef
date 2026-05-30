@@ -53,7 +53,7 @@ class Bloon(pygame.sprite.Sprite):
         if child_properties:
             self.target_node = child_properties["target_node"]
             self.distance = child_properties["distance"]
-            self.pos = child_properties["pos"]
+            self.pos = child_properties["pos"].copy()
     def update_bloon_rect(self, game_rect):
         """
         Convert the normalised pos into screen pixels and rebuild self.image /

@@ -64,6 +64,9 @@ class Projectile(pygame.sprite.Sprite):
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
+        if not game_rect.x < sx < game_rect.x + game_rect.width or not game_rect.y < sy < game_rect.y + game_rect.height:
+            self.kill()
+
     def move_proj(self, dt: float):
         """
         Advance the bloon along its path by one frame.

@@ -44,6 +44,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
         player.selected_tower = None  # Don't hold a tower while upgrading
         return
 
+    action = None
     if player.active_monkey:
         action = upg_gui.get_click(pos)
         if action == "sell":
@@ -118,7 +119,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
                 print("Not enough money for this tower!")
         else:
             player.selected_tower = None
-    else:
+    elif action is None:
         # Clicked empty map space
         player.active_monkey = None
 

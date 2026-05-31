@@ -74,7 +74,6 @@ class GameUser:
         self.full_size = [info.current_w, info.current_h]
         self.size = [self.full_size[0], self.full_size[1]]
         self.game_rect = pygame.Rect(0, 0, 0, 0)
-
         self.path = PATHS[str(side)]
 
         self.selected_tower: Optional[str] = None

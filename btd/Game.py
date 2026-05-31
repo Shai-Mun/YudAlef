@@ -166,10 +166,10 @@ def send_bloon(sender, receiver, bloon_name):
 
 
 
-def update_all_layouts(game_map, gui, upg_gui, p, f_screen, e=None):
-    size = game_map.update_size(p, f_screen, e)
-    p.size = size
-    p.calc_game_rect()
+def update_all_layouts(game_map, gui, upg_gui, players, f_screen, e=None):
+    size = game_map.update_size(players[0], f_screen, e)
+    players[1].size = size
+    players[1].calc_game_rect()
     gui.update_layout(f_screen, e)
     upg_gui.update_layout(f_screen, e)
 
@@ -204,7 +204,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     sock.setblocking(False)
 
     # Configuration
-    game_map = Map("galili")
+    game_map = Map("galili", me)
     refresh_rate = 60
 
     # --- 4. GLOBAL STATE SETUP ---
@@ -265,13 +265,11 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                 running = False
 
             elif event.type == VIDEORESIZE:
-                update_all_layouts(game_map, game_gui, upgrade_gui, me, fullscreen, event)
-                update_all_layouts(game_map, game_gui, upgrade_gui, enemy, fullscreen, event)
+                update_all_layouts(game_map, game_gui, upgrade_gui, (p1, p2), fullscreen, event)
 
             elif event.type == KEYDOWN and event.key == pygame.K_f:
                 fullscreen = not fullscreen
-                update_all_layouts(game_map, game_gui, upgrade_gui, me, fullscreen)
-                update_all_layouts(game_map, game_gui, upgrade_gui, enemy, fullscreen)
+                update_all_layouts(game_map, game_gui, upgrade_gui, (p1, p2), fullscreen)
 
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:  # LEFT CLICK
@@ -293,7 +291,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
         enemy.update(dt, current_time)
 
         # C. RENDERING
-        game_map.draw_map((me, enemy))
+        game_map.draw_map((p1, p2))
         game_gui.draw_gui(game_map.screen, pygame.time.get_ticks() / 1000, p1, p2)
 
         # Draw "Ghost" Tower

@@ -6,23 +6,42 @@ PATHS = {
     "2": []
 }
 
+tracks = {
+    "galili": f'assets/maps/galili.png'
+}
 
 def get_ratios(track):
     match track:
         case "galili":
+            # return [
+            #     (0.27, 0.0),  # 1
+            #     (0.27, 0.78),  # 2
+            #     (0.42, 0.88),
+            #     (0.6, 0.9),  # 3
+            #     (0.8, 0.88),
+            #     (0.93, 0.78),  # 4
+            #     (0.93, 0.17),  # 5
+            #     (0.8, 0.08),
+            #     (0.6, 0.04),  # 6
+            #     (0.42, 0.08),
+            #     (0.27, 0.17),  # 7
+            #     (0.27, 1.1),  # 8
+            # ]
             return [
-                (0.27, 0.0),  # 1
-                (0.27, 0.78),  # 2
-                (0.42, 0.88),
-                (0.6, 0.9),  # 3
-                (0.8, 0.88),
-                (0.93, 0.78),  # 4
-                (0.93, 0.17),  # 5
-                (0.8, 0.08),
-                (0.6, 0.04),  # 6
-                (0.42, 0.08),
-                (0.27, 0.17),  # 7
-                (0.27, 1.1),  # 8
+                (0.27, 0.02),
+                  # 1 - Just below the start line
+                (0.27, 0.79),  # 2 - End of left straight
+                (0.41, 0.87),  # 3 - Entering bottom curve
+                (0.56, 0.92),  # 4 - Middle bottom curve
+                (0.74, 0.90),  # 5 - Middle bottom curve
+                (0.88, 0.83),  # 6 - Exiting bottom curve
+                (0.93, 0.72),  # 7 - Lower right straight
+                (0.93, 0.18),  # 8 - Upper right straight
+                (0.82, 0.08),  # 9 - Entering top curve
+                (0.62, 0.04),  # 10 - Middle top curve
+                (0.46, 0.06),  # 11 - Exiting top curve
+                (0.27, 0.13),  # 12
+                (0.27, 0.97),  # 13 - Finish line
             ]
         case _:
             return []
@@ -57,7 +76,7 @@ def update_loc(player, game_rect):
 class Map:
     def __init__(self, track, player):
         self.ratios = get_ratios(track)
-        self.bg = pygame.image.load(f'assets/maps/{track}.png')
+        self.bg = pygame.image.load(tracks[track])
 
         # self.shop_width = int(pygame.display.Info().current_w * 0.12)
         self.shop_width = player.game_rect.x
@@ -84,7 +103,7 @@ class Map:
         player.calc_game_rect()
 
         self.shop_width = player.game_rect.x
-        self.size = [player.game_rect.width, player.game_rect.height + player.header_height]
+        self.size = [player.game_rect.width, player.game_rect.height]
 
         update_loc(player, player.game_rect)
 
@@ -95,7 +114,7 @@ class Map:
 
     def draw_map(self, players):
         for p in players:
-            self.screen.blit(self.bg_scaled, (p.game_rect.x, 0))
+            self.screen.blit(self.bg_scaled, (p.game_rect.x, p.game_rect.y))
             p.bloons_list.draw(self.screen)
             p.monkeys_list.draw(self.screen)
             for m in p.monkeys_list: m.projectile_list.draw(self.screen)

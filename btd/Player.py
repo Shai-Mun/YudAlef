@@ -68,6 +68,8 @@ class GameUser:
         self.monkeys_list = pygame.sprite.Group()
         self.grid = CollisionGrid()
 
+        self.send_queue = []
+
         pygame.mixer.init()
 
         info = pygame.display.Info()
@@ -115,6 +117,17 @@ class GameUser:
 
         # 2. Spawn queued bloons
         self.check_send(current_time)
+
+        if len(self.send_queue) > 0:
+            active = self.send_queue[0]
+            if current_time - active["last_tick"] >= active["load_time"]:
+                active["count"] -= 1
+                active["last_tick"] = current_time
+                if active["count"] <= 0:
+                    self.send_queue.pop(0)
+                    # Start the timer for the next batch immediately
+                    if len(self.send_queue) > 0:
+                        self.send_queue[0]["last_tick"] = current_time
 
         # 3. Collision & Combat
         self.grid.clear()

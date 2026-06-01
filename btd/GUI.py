@@ -196,12 +196,22 @@ class GameInterface:
 
         # --- STEP 1: DRAW PLAYER TOP BANNERS FIRST (BACKGROUND LAYER) ---
         p1_banner_rect = pygame.Rect(self.shop_width, 0, half_play_width, header_h)
+        p2_banner_rect = pygame.Rect(self.shop_width + half_play_width, 0, half_play_width, header_h)
+
+        # Calculate health bar widths based on max 200 lives[cite: 3]
+        p1_hp_ratio = max(0, p1.lives) / 200.0
+        p2_hp_ratio = max(0, p2.lives) / 200.0
+
+        # Player 1 Banner & Health Bar
         pygame.draw.rect(surface, self.COLOR_BANNER_BG, p1_banner_rect)
+        pygame.draw.rect(surface, (180, 40, 40), (self.shop_width, 0, int(half_play_width * p1_hp_ratio), header_h))
         pygame.draw.line(surface, self.COLOR_BORDER, (self.shop_width, header_h),
                          (self.shop_width + half_play_width, header_h), 2)
 
-        p2_banner_rect = pygame.Rect(self.shop_width + half_play_width, 0, half_play_width, header_h)
+        # Player 2 Banner & Health Bar
         pygame.draw.rect(surface, self.COLOR_BANNER_BG, p2_banner_rect)
+        pygame.draw.rect(surface, (180, 40, 40),
+                         (self.shop_width + half_play_width, 0, int(half_play_width * p2_hp_ratio), header_h))
         pygame.draw.line(surface, self.COLOR_BORDER, (self.shop_width + half_play_width, header_h),
                          (self.screen_width, header_h), 2)
 
@@ -213,7 +223,6 @@ class GameInterface:
         round_radius = int(header_h * 0.85)
         round_center = (center_x, header_h // 2)
 
-        # BTD Battles Gold/Orange theme for the Round circle
         COLOR_ROUND_BG = (235, 155, 50)
         COLOR_ROUND_BORDER = (160, 95, 25)
 
@@ -226,7 +235,6 @@ class GameInterface:
         txt_r_label = round_label_font.render("Round", True, (255, 255, 255))
         txt_r_val = round_val_font.render(str(round_num), True, (255, 255, 255))
 
-        # Center text inside the circle
         surface.blit(txt_r_label, (center_x - txt_r_label.get_width() // 2, round_center[1] - 16))
         surface.blit(txt_r_val, (center_x - txt_r_val.get_width() // 2, round_center[1] - 2))
 
@@ -234,53 +242,47 @@ class GameInterface:
         hud_font = pygame.font.SysFont("Arial", 16, bold=True)
         lives_font = pygame.font.SysFont("calibri", 16, bold=True)
 
-        # Player 1 Info (Left Side)
         p1_name = p1.username
         p1_lives = f"<3 {p1.lives}"
         txt_p1_name = hud_font.render(p1_name, True, (230, 230, 230))
         txt_p1_lives = lives_font.render(p1_lives, True, (240, 70, 70))
 
         surface.blit(txt_p1_name, (self.shop_width + 15, 12))
-        # Anchor lives safely to the left edge of the new round circle
         surface.blit(txt_p1_lives, (center_x - round_radius - txt_p1_lives.get_width() - 15, 12))
 
-        # Player 2 Info (Right Side)
         p2_name = p2.username
         p2_lives = f"<3 {p2.lives}"
         txt_p2_name = hud_font.render(p2_name, True, (230, 230, 230))
         txt_p2_lives = lives_font.render(p2_lives, True, (240, 70, 70))
 
-        # Anchor name safely to the right edge of the new round circle
         surface.blit(txt_p2_name, (center_x + round_radius + 15, 12))
         surface.blit(txt_p2_lives, (self.screen_width - txt_p2_lives.get_width() - 15, 12))
 
         # --- STEP 5: DRAW THE BOTTOM BADGE (CASH, TIMER, ECO) ---
-        bottom_badge_w = 110
-        bottom_badge_h = 90
+        # Increased dimensions for bigger bottom GUI
+        bottom_badge_w = 160
+        bottom_badge_h = 130
         bottom_badge_x = center_x - (bottom_badge_w // 2)
-        # Positioned right at the bottom edge of the screen
         bottom_badge_y = self.screen_height - bottom_badge_h
 
         bottom_rect = pygame.Rect(bottom_badge_x, bottom_badge_y, bottom_badge_w, bottom_badge_h)
 
-        # BTD Battles Blue theme for the bottom UI
         COLOR_BOTTOM_BG = (50, 145, 235)
         COLOR_BOTTOM_BORDER = (35, 95, 160)
 
         pygame.draw.rect(surface, COLOR_BOTTOM_BG, bottom_rect, border_radius=20)
         pygame.draw.rect(surface, COLOR_BOTTOM_BORDER, bottom_rect, 4, border_radius=20)
 
-        # Calculate Text
         mins, secs = divmod(int(timer_seconds), 60)
         timer_str = f"{mins:02d}:{secs:02d}"
         player = p1 if p1.username == "You" else p2
 
-        # Format fonts
-        time_surf = UI_FONT.render(timer_str, True, (255, 255, 255))
-        cash_surf = UI_FONT.render(f"${player.money}", True, (255, 255, 0))
-        income_surf = UI_FONT.render(f"+ ${player.eco}", True, (100, 255, 100))
+        # Made font sizes bigger for these elements specifically
+        large_ui_font = pygame.font.SysFont("Arial", 26, bold=True)
+        time_surf = large_ui_font.render(timer_str, True, (255, 255, 255))
+        cash_surf = large_ui_font.render(f"${player.money}", True, (255, 255, 0))
+        income_surf = large_ui_font.render(f"+ ${player.eco}", True, (100, 255, 100))
 
-        # Stack vertically inside the bottom badge
         spacing = bottom_badge_h // 4
         surface.blit(time_surf, (center_x - time_surf.get_width() // 2,
                                  bottom_badge_y + spacing * 1 - time_surf.get_height() // 2))
@@ -288,6 +290,53 @@ class GameInterface:
                                  bottom_badge_y + spacing * 2 - cash_surf.get_height() // 2 + 2))
         surface.blit(income_surf, (center_x - income_surf.get_width() // 2,
                                    bottom_badge_y + spacing * 3 - income_surf.get_height() // 2 + 4))
+
+        # --- STEP 6: DRAW BLOON SEND QUEUE IN MIDDLE PILLAR ---
+        # Find the player that represents "us"
+        my_player = p1 if p1.username == "You" else p2
+
+        # Create a cache so we aren't loading images from disk 60 times a second
+        if not hasattr(self, 'bloon_img_cache'):
+            self.bloon_img_cache = {}
+
+        queue_y_start = header_h + 30
+        queue_spacing = 45
+
+        for i, batch in enumerate(my_player.send_queue):
+            color = batch["color"]
+            count = batch["count"]
+
+            # Load and cache image dynamically
+            if color not in self.bloon_img_cache:
+                try:
+                    path = f"assets/bloons/{BLOON_DATA[color]['image']}"
+                    img = pygame.image.load(path).convert()
+                    img.set_colorkey(PINK)  # Using PINK from your file's header
+                    self.bloon_img_cache[color] = pygame.transform.scale(img, (24, 30))
+                except Exception:
+                    self.bloon_img_cache[color] = None
+
+            img = self.bloon_img_cache[color]
+            item_y = queue_y_start + (i * queue_spacing)
+
+            if img:
+                surface.blit(img, (center_x - img.get_width() // 2, item_y))
+
+            # Draw counter text with a black outline for visibility
+            count_font = pygame.font.SysFont("Arial", 14, bold=True)
+            txt_count = count_font.render(str(count), True, (255, 255, 255))
+            txt_outline = count_font.render(str(count), True, (0, 0, 0))
+
+            text_x = center_x + 2
+            text_y = item_y + 12
+
+            # Blit outline offsets
+            surface.blit(txt_outline, (text_x - 1, text_y - 1))
+            surface.blit(txt_outline, (text_x + 1, text_y - 1))
+            surface.blit(txt_outline, (text_x - 1, text_y + 1))
+            surface.blit(txt_outline, (text_x + 1, text_y + 1))
+            # Blit actual white text
+            surface.blit(txt_count, (text_x, text_y))
 
         # 3. Draw screen borders (Drawn last so they overlay the edges cleanly)
         pygame.draw.rect(surface, self.COLOR_BORDER, (0, 0, self.screen_width, self.border_thickness))

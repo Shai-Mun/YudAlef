@@ -152,17 +152,47 @@ def draw_transparent_circle(screen, c, player):
 def send_bloon(sender, receiver, bloon_name):
     global e_key, sock, current_round
 
+    # FEATURE 2: Limit the queue to 5 batches maximum
+    if len(sender.send_queue) >= 5:
+        return
+
     data = BLOON_CONFIG.get(bloon_name)
     cost = data["cost"]
+
     if current_round >= int(data['round']) and sender.try_purchase(cost):
         sender.eco += round(data["eco"])  # Increase eco
+
+        # FEATURE 1: Add the batch to the sender's visual queue
+        # If the queue was empty, start the timer immediately using current ticks
+        last_t = pygame.time.get_ticks() if len(sender.send_queue) == 0 else 0
+        sender.send_queue.append({
+            "color": data["color"],
+            "count": data["count"],
+            "load_time": data["load_time"],
+            "last_tick": last_t
+        })
 
         # Add to the OPPONENT'S queue
         for _ in range(data["count"]):
             # Create bloon with the receiver's path type
             new_bloon = Bloon(data["color"], receiver.side, receiver.path)
             receiver.bloons_queue.append((new_bloon, data["load_time"]))
-            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data["color"]}~{data["load_time"]}", e_key)
+            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data['color']}~{data['load_time']}", e_key)
+
+# def send_bloon(sender, receiver, bloon_name):
+#     global e_key, sock, current_round
+#
+#     data = BLOON_CONFIG.get(bloon_name)
+#     cost = data["cost"]
+#     if current_round >= int(data['round']) and sender.try_purchase(cost):
+#         sender.eco += round(data["eco"])  # Increase eco
+#
+#         # Add to the OPPONENT'S queue
+#         for _ in range(data["count"]):
+#             # Create bloon with the receiver's path type
+#             new_bloon = Bloon(data["color"], receiver.side, receiver.path)
+#             receiver.bloons_queue.append((new_bloon, data["load_time"]))
+#             send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data["color"]}~{data["load_time"]}", e_key)
 
 
 
@@ -189,7 +219,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     from Player import GameUser
     global sock, e_key, current_round, time_for_round, last_round_start
 
-    e_key  = enc_key
+    e_key = enc_key
     sock = socket
 
     pygame.init()
@@ -219,28 +249,28 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     game_gui.set_monkey_imgs(me.monkey_map)
     upgrade_gui = UpgradeMenu()
 
-    # Now that the screen is set, load images
     ghost_cache = initialize_assets()
     clock = pygame.time.Clock()
     running = True
 
+    # Game Over Variables
+    game_over = False
+    winner_name = ""
+
     # --- 5. MAIN LOOP ---
     while running:
+        # A. EVENT HANDLING
         try:
-            # Check if the server sent us an update about the enemy
             byte_data = recv_by_size(sock, e_key)
             if byte_data:
                 msg = byte_data.decode()
 
-                # Parse actions sent by the opponent
                 if msg.startswith("PLACE_MONKEY~"):
                     _, m_type, rel_x, rel_y, num = msg.split("~")
-                    # Force enemy instance to place a monkey on their side
                     enemy.monkeys_list.add(Monkey(m_type, (float(rel_x), float(rel_y)), num))
 
                 elif msg.startswith("SPAWN_BLOON~"):
                     _, side, b_color, loadtime = msg.split("~")
-                    # Spawn a bloon on our side sent by the enemy
                     player = p1 if int(side) == 1 else p2
                     player.bloons_queue.append((Bloon(b_color, player.side, player.path), int(loadtime)))
 
@@ -258,14 +288,12 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                         if int(monkey.id) == int(m_id):
                             monkey.kill()
         except BlockingIOError:
-            # This is normal! It means the server hasn't sent any data this frame.
             pass
         except Exception as e:
             print(f"Network error during match: {e}")
 
         current_time = pygame.time.get_ticks()
 
-            # --- B. HANDLE LOCAL INPUTS & SEND TO SERVER ---
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -277,10 +305,10 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                 fullscreen = not fullscreen
                 update_all_layouts(game_map, game_gui, upgrade_gui, (p1, p2), fullscreen)
 
-            elif event.type == MOUSEBUTTONDOWN:
-                if event.button == 1:  # LEFT CLICK
+            elif event.type == MOUSEBUTTONDOWN and not game_over:
+                if event.button == 1:
                     handle_left_click(game_gui, upgrade_gui, event.pos, me, enemy)
-                elif event.button == 2:  # SCROLL CLICK (Random Spawner)
+                elif event.button == 2:
                     colors = ["red", "blue", "green", "yellow", "pink", "black", "white", "rainbow", "lead", "zebra"]
                     c = random.choice(colors)
                     me.bloons_list.add(Bloon(c, 1, me.path))
@@ -288,10 +316,13 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                     send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{me.side}~{c}~0", e_key)
                     send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{enemy.side}~{c}~0", e_key)
 
-            elif event.type == MOUSEWHEEL:
+            elif event.type == MOUSEWHEEL and not game_over:
                 game_gui.handle_scroll(-event.y)
-        if current_time - last_round_start >= time_for_round * 1000 or (me.round_finished and enemy.round_finished):
-            current_round += 1 # next round
+
+        # Ensure rounds only tick forward if the game isn't over
+        if not game_over and (current_time - last_round_start >= time_for_round * 1000 or (
+                me.round_finished and enemy.round_finished)):
+            current_round += 1
             last_round_start = current_time
 
             from Databases import NATURAL_ROUNDS
@@ -307,37 +338,55 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                     me.round_finished = False
 
             if current_round % 2 == 0 and current_round > 0:
-                game_gui.bloon_buttons[current_round - 2].set_img('bloon_' + str(current_round-2))
-                game_gui.bloon_buttons[current_round - 1].set_img('bloon_' + str(current_round-1))
-            # ------------------------------------------------------------------------------------------------------
-
+                game_gui.bloon_buttons[current_round - 2].set_img('bloon_' + str(current_round - 2))
+                game_gui.bloon_buttons[current_round - 1].set_img('bloon_' + str(current_round - 1))
 
         # B. GAME LOGIC UPDATES
         dt = clock.tick(refresh_rate)
-        me.update(dt, current_time)
-        enemy.update(dt, current_time)
+
+        # Only update gameplay logic if the match is ongoing
+        if not game_over:
+            me.update(dt, current_time)
+            enemy.update(dt, current_time)
+
+            # Check for win condition
+            if p1.lives <= 0:
+                game_over = True
+                winner_name = p2.username
+            elif p2.lives <= 0:
+                game_over = True
+                winner_name = p1.username
 
         # C. RENDERING
         game_map.draw_map((p1, p2))
         game_gui.draw_gui(game_map.screen, current_time / 1000, p1, p2, current_round)
 
-        # Draw "Ghost" Tower
-        if me.selected_tower:
-            img = ghost_cache[me.selected_tower].copy()
-            img.set_alpha(150)
-            rect = img.get_rect(center=pygame.mouse.get_pos())
-            game_map.screen.blit(img, rect)
-            draw_transparent_rectangle(game_map.screen, (255, 0, 0, 128), enemy)
+        # Draw "Ghost" Tower and Upgrade Menus only if the game is active
+        if not game_over:
+            if me.selected_tower:
+                img = ghost_cache[me.selected_tower].copy()
+                img.set_alpha(150)
+                rect = img.get_rect(center=pygame.mouse.get_pos())
+                game_map.screen.blit(img, rect)
+                draw_transparent_rectangle(game_map.screen, (255, 0, 0, 128), enemy)
 
+            if me.active_monkey:
+                draw_transparent_circle(game_map.screen, (255, 0, 0, 128), me)
+                upgrade_gui.draw_upgrade_gui(game_map.screen, me.active_monkey)
 
-        # Draw Upgrade Menu
-        if me.active_monkey:
-            draw_transparent_circle(game_map.screen, (255, 0, 0, 128), me)
-            upgrade_gui.draw_upgrade_gui(game_map.screen, me.active_monkey)
+        # Draw Game Over Screen over everything
+        if game_over:
+            overlay = pygame.Surface(game_map.screen.get_size(), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 160))  # Semi-transparent dark overlay
+            game_map.screen.blit(overlay, (0, 0))
+
+            win_font = pygame.font.SysFont("Arial", 80, bold=True)
+            win_text = win_font.render(f"{winner_name} won!", True, (255, 215, 0))
+
+            # Center the text
+            text_rect = win_text.get_rect(center=(game_map.screen.get_width() // 2, game_map.screen.get_height() // 2))
+            game_map.screen.blit(win_text, text_rect)
 
         pygame.display.flip()
-
-        # A. EVENT HANDLING
-
 
     pygame.quit()

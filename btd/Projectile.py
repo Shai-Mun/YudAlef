@@ -18,7 +18,8 @@ class Projectile(pygame.sprite.Sprite):
         self.normalized_range_limit = (monkey.original_range * monkey.proj_dist_mult) / _BASE_GAME_W
 
         self.pierce = monkey.pierce
-        self.image = pygame.image.load(f"assets/projectiles/{monkey.projectile}.png").convert()
+        self.type = monkey.projectile
+        self.image = pygame.image.load(f"assets/projectiles/{self.type}.png").convert()
         self.sized_image = self.image
         self.original_image = self.image
         self.image.set_colorkey(PINK)
@@ -108,10 +109,18 @@ class Projectile(pygame.sprite.Sprite):
 
                     num = random.randint(1, 4)
                     pygame.mixer.Sound(f"assets/sounds/{SOUNDS["pop" + str(num)]}").play()
+
                     self.pierce -= 1
+                    if "bomb" in self.type or "missile" in self.type:
+                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS["explosion"]}").play()
+                        self.kill()
+                        break
+
                     if self.pierce <= 0:
                         self.kill()
                         break
                 else:
-                    pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
+                    if bloon.type == "lead" or bloon.type == "frozen":
+                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
+
         return children, money_earned

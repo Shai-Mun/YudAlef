@@ -81,6 +81,8 @@ MONKEY_DATA = {
             "image": "tack_base.png",
             "projectile": "tack",
             "weaknesses": ["lead"],
+            "size": [80, 80],
+
             "projectile_speed": 700,
             "proj_dist_mult": 0.8,
 
@@ -110,7 +112,7 @@ MONKEY_DATA = {
 
                 # Blade shooter changes the projectile entirely and gives them more pierce/range
                 {"name": "Blade Shooter", "cost": 680, "pierce": 2, "projectile": "blade", "projectile_speed": 850,
-                 "proj_dist_mult": 1.1},
+                 "proj_dist_mult": 1.1, "proj_size": (30, 30)},
 
                 # Maelstrom gives standard attacks massive pierce.
                 # (If you add an ability system later, you would trigger it from this tier!)
@@ -171,7 +173,7 @@ MONKEY_DATA = {
             "proj_dist_mult": 1.0,
             "proj_count": 1,
             "proj_angle": 0,
-            "size": [80, 80]
+            "size": [70, 70]
         },
         "upgrades": {
             "path_1": [
@@ -205,6 +207,7 @@ SOUNDS = {
     "pop3": "29_Pop2.mp3",
     "pop2": "30_Pop3.mp3",
     "pop1": "31_Pop1.mp3",
+    "explosion": "32_ExplosionSmall.mp3",
     "cash": "59_ReceivedCash.mp3",
     "sell": "62_Sell.mp3",
     "upgrade": "70_Upgrade.mp3"

@@ -1,6 +1,6 @@
 """
 =============================================================
-  Encrypted Server Client
+  Encrypted Server Client (With Graphical Map Previews)
 =============================================================
 """
 import os
@@ -20,6 +20,7 @@ from Crypto.Util.Padding import pad as _pad, unpad as _unpad
 from Crypto.Random import get_random_bytes as _rand_bytes
 
 from enc_utils import send_with_size, recv_by_size, dph_cli, rsa_cli
+from Maps import tracks  # Imported track map paths from Maps.py
 
 # ── Color palette ─────────────────────────────
 BG      = "#1e1e2e"
@@ -272,6 +273,7 @@ class App(tk.Tk):
                   font=("Segoe UI", 11, "bold"), cursor="hand2",
                   padx=20, pady=6).pack(pady=14)
 
+    # ── Modern Lobbies tab with Graphical Previews ───────────────────
     def _build_lobbies_tab(self):
         tab = tk.Frame(self.notebook, bg=SURFACE)
         self.notebook.add(tab, text="  🎮 Lobbies  ")
@@ -285,14 +287,24 @@ class App(tk.Tk):
         list_frame = tk.Frame(inner, bg=BG)
         list_frame.pack(fill="both", expand=True, pady=5)
 
-        sb = tk.Scrollbar(list_frame)
+        # Replaced original Listbox with a robust Scrollable Canvas
+        self.lobby_canvas = tk.Canvas(list_frame, bg="#12121e", highlightthickness=0)
+        sb = tk.Scrollbar(list_frame, orient="vertical", command=self.lobby_canvas.yview)
+        self.lobby_canvas.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
+        self.lobby_canvas.pack(fill="both", expand=True)
 
-        self.lobby_box = tk.Listbox(list_frame, yscrollcommand=sb.set,
-                                    bg="#12121e", fg=TEXT, selectbackground=ACCENT2,
-                                    font=("Segoe UI", 11), relief="flat", bd=0)
-        self.lobby_box.pack(fill="both", expand=True)
-        sb.config(command=self.lobby_box.yview)
+        self.lobby_container = tk.Frame(self.lobby_canvas, bg="#12121e")
+        self.lobby_canvas_window = self.lobby_canvas.create_window((0, 0), window=self.lobby_container, anchor="nw")
+
+        # Auto-configure widths and dynamic sizing ranges
+        self.lobby_canvas.bind("<Configure>", lambda e: self.lobby_canvas.itemconfig(self.lobby_canvas_window, width=e.width))
+        self.lobby_container.bind("<Configure>", lambda e: self.lobby_canvas.configure(scrollregion=self.lobby_canvas.bbox("all")))
+
+        # Layout runtime state handlers
+        self.selected_lobby_host = None
+        self.lobby_row_frames = {}
+        self.lobby_images = []
 
         btn_frame = tk.Frame(inner, bg=SURFACE)
         btn_frame.pack(fill="x", pady=10)
@@ -557,21 +569,88 @@ class App(tk.Tk):
             self.log_box.insert("end", "[-->] Hosting a new lobby room...")
 
     def _on_join_lobby(self):
-        selected = self.lobby_box.curselection()
-        if not selected:
+        if not self.selected_lobby_host:
             self.log_box.insert("end", "[X] Please choose a lobby to join.")
             return
+        self._join_lobby_by_host(self.selected_lobby_host)
 
-        raw_string = self.lobby_box.get(selected[0])
-        if "👑 Room Owner: " in raw_string:
-            target_host = raw_string.replace("👑 Room Owner: ", "").strip()
-            send_with_size(self.cli_sock, f"JOIN_LOBBY~{target_host}".encode(), encryption_key)
+    def _join_lobby_by_host(self, host):
+        if self.cli_sock:
+            send_with_size(self.cli_sock, f"JOIN_LOBBY~{host}".encode(), encryption_key)
+
+    # ── Grid UI Row Selection State Modifiers ──
+    def _select_lobby_row(self, host):
+        self.selected_lobby_host = host
+        for h, frame in self.lobby_row_frames.items():
+            if h == host:
+                frame.config(bg=ACCENT2)
+                for child in frame.winfo_children():
+                    if isinstance(child, tk.Label):
+                        child.config(bg=ACCENT2)
+            else:
+                frame.config(bg=SURFACE)
+                for child in frame.winfo_children():
+                    if isinstance(child, tk.Label):
+                        child.config(bg=SURFACE)
 
     def _update_lobby_ui_list(self, rooms):
-        self.lobby_box.delete(0, "end")
-        for host in rooms:
-            if host:
-                self.lobby_box.insert("end", f"👑 Room Owner: {host}")
+        # Clear previous elements and free resources
+        for child in self.lobby_container.winfo_children():
+            child.destroy()
+        self.lobby_images.clear()
+        self.lobby_row_frames.clear()
+        self.selected_lobby_host = None
+
+        for host_info in rooms:
+            if not host_info:
+                continue
+
+            # Support both standard hostnames and combined formats "host:map_name"
+            if ":" in host_info:
+                host, map_name = host_info.split(":", 1)
+            else:
+                host = host_info
+                map_name = "galili"
+
+            if map_name not in tracks:
+                map_name = "galili"
+
+            # Create entry row background
+            row_frame = tk.Frame(self.lobby_container, bg=SURFACE, bd=1, relief="flat", padx=10, pady=5)
+            row_frame.pack(fill="x", padx=5, pady=4)
+
+            # Generate miniature visual map preview
+            img_path = tracks[map_name]
+            try:
+                img = tk.PhotoImage(file=img_path)
+                # Downsample image dimensions cleanly via standard Tkinter subsample step intervals
+                thumb_img = img.subsample(6, 6)
+                self.lobby_images.append(thumb_img) # Guard references from garbage collector
+
+                img_lbl = tk.Label(row_frame, image=thumb_img, bg=SURFACE)
+                img_lbl.pack(side="left", padx=(0, 10))
+                img_lbl.bind("<Button-1>", lambda e, h=host: self._select_lobby_row(h))
+            except Exception as e:
+                print(f"Error loading map thumbnail path ({img_path}): {e}")
+
+            # Text Labels
+            info_text = f"👑 Host: {host}\n🗺️ Map: {map_name.capitalize()}"
+            lbl_info = tk.Label(row_frame, text=info_text, bg=SURFACE, fg=TEXT,
+                                font=("Segoe UI", 11, "bold"), justify="left", anchor="w")
+            lbl_info.pack(side="left", fill="x", expand=True)
+
+            # Instant Match Connection Activation Trigger
+            btn_join = tk.Button(row_frame, text="Join Match ⚔️",
+                                 command=lambda h=host: self._join_lobby_by_host(h),
+                                 bg=SUCCESS, fg="#1e1e2e", font=("Segoe UI", 10, "bold"),
+                                 relief="flat", padx=12, pady=4, cursor="hand2")
+            btn_join.pack(side="right", padx=5)
+
+            # Event Selection binds
+            row_frame.bind("<Button-1>", lambda e, h=host: self._select_lobby_row(h))
+            lbl_info.bind("<Button-1>", lambda e, h=host: self._select_lobby_row(h))
+
+            self.lobby_row_frames[host] = row_frame
 
     def _ensure_session_key(self, peer: str):
         """
@@ -668,7 +747,6 @@ class App(tk.Tk):
                         self.log_box.insert("end", f"[🔑] AES session established with {from_user}")
                         self.log_box.itemconfig("end", fg=SUCCESS)
                     except Exception:
-                        self.log_box.insert("end", f"[X] Failed to decrypt session key from {from_user}")
                         self.log_box.insert("end", f"[X] Failed to decrypt session key from {from_user}")
                         print(traceback.format_exc())
 

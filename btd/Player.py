@@ -80,6 +80,10 @@ class GameUser:
         from Monkey import Monkey
         self.active_monkey: Optional[Monkey] = None
 
+        self.round_bloons = []
+        self.round_finished = False
+        self.last_round_send = 0
+
         self.calc_game_rect()
 
 
@@ -98,6 +102,13 @@ class GameUser:
                 self.bloons_list.add(self.bloons_queue.pop(0)[0])
                 self.last_send = curr_time
 
+        if len(self.round_bloons) > 0:
+            if curr_time - self.last_round_send >= self.round_bloons[0][1]:
+                self.bloons_list.add(self.round_bloons.pop(0)[0])
+                self.last_round_send = curr_time
+        elif curr_time > 10000:
+            self.round_finished = True
+
     def update(self, dt, current_time):
         # 1. Handle Income Timer
         self.update_eco(dt)
@@ -112,11 +123,6 @@ class GameUser:
                 self.lives -= b.dmg
                 b.kill()
             b.update_bloon_rect(self.game_rect)
-            # Check if bloon reached the end
-            # if b.reached_end:
-            #     self.lives -= b.leak_damage
-            #     b.kill()
-            # else:
             self.grid.insert_bloon(b)
 
         for m in self.monkeys_list:
@@ -152,4 +158,5 @@ class GameUser:
             # Player 2 occupies the right half of the remaining space
             self.game_rect = pygame.Rect(shop_width + game_width, self.header_height, game_width,
                                          h - self.header_height)
+
 

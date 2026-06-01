@@ -149,11 +149,11 @@ def draw_transparent_circle(screen, c, player):
 
 
 def send_bloon(sender, receiver, bloon_name):
-    global e_key, sock
+    global e_key, sock, current_round
 
     data = BLOON_CONFIG.get(bloon_name)
     cost = data["cost"]
-    if sender.try_purchase(cost):
+    if current_round >= int(data['round']) and sender.try_purchase(cost):
         sender.eco += round(data["eco"])  # Increase eco
 
         # Add to the OPPONENT'S queue
@@ -179,9 +179,14 @@ e_key = ""
 sock = ""
 curr_monkey_id = 1
 
+current_round = 0
+time_for_round = 45 # seconds
+last_round_start = 35 * 1000
+
+
 def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     from Player import GameUser
-    global sock, e_key
+    global sock, e_key, current_round, time_for_round, last_round_start
 
     e_key  = enc_key
     sock = socket
@@ -204,7 +209,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     sock.setblocking(False)
 
     # Configuration
-    game_map = Map("galili", me)
+    game_map = Map("galili", p1)
     refresh_rate = 60
 
     # --- 4. GLOBAL STATE SETUP ---
@@ -284,6 +289,27 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
             elif event.type == MOUSEWHEEL:
                 game_gui.handle_scroll(-event.y)
+        if current_time - last_round_start >= time_for_round * 1000 or (me.round_finished and enemy.round_finished):
+            current_round += 1 # next round
+            last_round_start = current_time
+
+            from Databases import NATURAL_ROUNDS
+            batches = NATURAL_ROUNDS[current_round]
+            for batch in batches:
+                for _ in range(int(batch['count'])):
+                    new_bloon = Bloon(batch["color"], me.side, me.path)
+                    me.round_bloons.append((new_bloon, batch["spacing"]))
+                    me.round_finished = False
+
+                    new_bloon = Bloon(batch["color"], enemy.side, enemy.path)
+                    enemy.round_bloons.append((new_bloon, batch["spacing"]))
+                    me.round_finished = False
+
+            if current_round % 2 == 0 and current_round > 0:
+                game_gui.bloon_buttons[current_round - 2].set_img('bloon_' + str(current_round-2))
+                game_gui.bloon_buttons[current_round - 1].set_img('bloon_' + str(current_round-1))
+            # ------------------------------------------------------------------------------------------------------
+
 
         # B. GAME LOGIC UPDATES
         dt = clock.tick(refresh_rate)
@@ -292,7 +318,7 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
         # C. RENDERING
         game_map.draw_map((p1, p2))
-        game_gui.draw_gui(game_map.screen, pygame.time.get_ticks() / 1000, p1, p2)
+        game_gui.draw_gui(game_map.screen, current_time / 1000, p1, p2, current_round)
 
         # Draw "Ghost" Tower
         if me.selected_tower:

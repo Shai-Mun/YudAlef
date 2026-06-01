@@ -24,6 +24,7 @@ class InterfaceButton:
     def load_default_image(self):
         try:
             if self.name in BLOON_CONFIG.keys():
+
                 path = f"assets/bloons/{BLOON_DATA[BLOON_CONFIG[self.name]['color']]['image']}"
                 # Auto-load cost for bloons
                 self.cost = BLOON_CONFIG[self.name].get('cost', 0)
@@ -78,13 +79,17 @@ class InterfaceButton:
         elif self.label == "MAXED":  # Special case for maxed upgrades
             pass
 
-    def set_img(self, m_type):
+    def set_img(self, obj_type):
         try:
-            path = f"assets/monkeys/{m_type}/{MONKEY_DATA[m_type]['image']}"
+            if obj_type in BLOON_CONFIG.keys():
+                path = f"assets/bloons/{BLOON_DATA[BLOON_CONFIG[obj_type]['color']]['image']}"
+            else:
+                path = f"assets/monkeys/{obj_type}/{MONKEY_DATA[obj_type]['image']}"
+
             self.image = pygame.image.load(path).convert()
             self.image.set_colorkey(PINK)
         except Exception as e:
-            print(f"Error loading image for {m_type}: {e}")
+            print(f"Error loading image for {obj_type}: {e}")
 
 
 class GameInterface:
@@ -147,7 +152,8 @@ class GameInterface:
             y = self.monkey_area_h + b_margin + row * (b_btn_h + b_margin)
             rect = pygame.Rect(x, y, b_btn_w, b_btn_h)
             if create_bloons:
-                self.bloon_buttons.append(InterfaceButton(rect, f"bloon_{i}", self.COLOR_BLOON_BTN))
+                img = pygame.image.load("assets/lock.png").convert()
+                self.bloon_buttons.append(InterfaceButton(rect, f"bloon_{i}", self.COLOR_BLOON_BTN, img))
             else:
                 self.bloon_buttons[i].rect = rect  # Just update the position!
 
@@ -170,7 +176,7 @@ class GameInterface:
                     return btn.name
         return None
 
-    def draw_gui(self, surface, timer_seconds, p1, p2):
+    def draw_gui(self, surface, timer_seconds, p1, p2, round_num=1):
         # 1. Draw the main sidebar base
         pygame.draw.rect(surface, self.COLOR_SHOP, self.shop_rect)
         for btn in self.monkey_buttons: btn.draw_button(surface)
@@ -203,16 +209,28 @@ class GameInterface:
         pillar_x = center_x - (self.pillar_width // 2)
         pygame.draw.rect(surface, self.COLOR_PILLAR, (pillar_x, 0, self.pillar_width, self.screen_height))
 
-        # --- STEP 3: DRAW THE CENTRAL SCORES/TIMER BADGE OVER THE PILLAR ---
-        badge_h = int(self.screen_height * 0.08)
-        badge_w = int(self.pillar_width * 7)
-        badge_x = center_x - (badge_w // 2)
-        header_rect = pygame.Rect(badge_x, 0, badge_w, badge_h)
+        # --- STEP 3: DRAW THE TOP ROUND COUNTER ---
+        round_radius = int(header_h * 0.85)
+        round_center = (center_x, header_h // 2)
 
-        pygame.draw.rect(surface, self.COLOR_PILLAR_HEADER, header_rect, border_radius=5)
-        pygame.draw.rect(surface, self.COLOR_BORDER, header_rect, 3, border_radius=5)
+        # BTD Battles Gold/Orange theme for the Round circle
+        COLOR_ROUND_BG = (235, 155, 50)
+        COLOR_ROUND_BORDER = (160, 95, 25)
 
-        # --- STEP 4: RENDER AND BLIT PLAYER HUD LABELS (SOCIALLY DISTANCED) ---
+        pygame.draw.circle(surface, COLOR_ROUND_BG, round_center, round_radius)
+        pygame.draw.circle(surface, COLOR_ROUND_BORDER, round_center, round_radius, 3)
+
+        round_label_font = pygame.font.SysFont("Arial", 12, bold=True)
+        round_val_font = pygame.font.SysFont("Arial", 22, bold=True)
+
+        txt_r_label = round_label_font.render("Round", True, (255, 255, 255))
+        txt_r_val = round_val_font.render(str(round_num), True, (255, 255, 255))
+
+        # Center text inside the circle
+        surface.blit(txt_r_label, (center_x - txt_r_label.get_width() // 2, round_center[1] - 16))
+        surface.blit(txt_r_val, (center_x - txt_r_val.get_width() // 2, round_center[1] - 2))
+
+        # --- STEP 4: RENDER AND BLIT PLAYER HUD LABELS ---
         hud_font = pygame.font.SysFont("Arial", 16, bold=True)
         lives_font = pygame.font.SysFont("calibri", 16, bold=True)
 
@@ -223,8 +241,8 @@ class GameInterface:
         txt_p1_lives = lives_font.render(p1_lives, True, (240, 70, 70))
 
         surface.blit(txt_p1_name, (self.shop_width + 15, 12))
-        # Anchor lives safely to the left edge of the center wood badge
-        surface.blit(txt_p1_lives, (header_rect.x - txt_p1_lives.get_width() - 15, 12))
+        # Anchor lives safely to the left edge of the new round circle
+        surface.blit(txt_p1_lives, (center_x - round_radius - txt_p1_lives.get_width() - 15, 12))
 
         # Player 2 Info (Right Side)
         p2_name = p2.username
@@ -232,41 +250,51 @@ class GameInterface:
         txt_p2_name = hud_font.render(p2_name, True, (230, 230, 230))
         txt_p2_lives = lives_font.render(p2_lives, True, (240, 70, 70))
 
-        # Anchor name safely to the right edge of the center wood badge
-        surface.blit(txt_p2_name, (header_rect.right + 15, 12))
+        # Anchor name safely to the right edge of the new round circle
+        surface.blit(txt_p2_name, (center_x + round_radius + 15, 12))
         surface.blit(txt_p2_lives, (self.screen_width - txt_p2_lives.get_width() - 15, 12))
 
-        # --- STEP 5: DRAW THE 3 BADGE COUNTERS (CASH, TIMER, ECO) ---
+        # --- STEP 5: DRAW THE BOTTOM BADGE (CASH, TIMER, ECO) ---
+        bottom_badge_w = 110
+        bottom_badge_h = 90
+        bottom_badge_x = center_x - (bottom_badge_w // 2)
+        # Positioned right at the bottom edge of the screen
+        bottom_badge_y = self.screen_height - bottom_badge_h
+
+        bottom_rect = pygame.Rect(bottom_badge_x, bottom_badge_y, bottom_badge_w, bottom_badge_h)
+
+        # BTD Battles Blue theme for the bottom UI
+        COLOR_BOTTOM_BG = (50, 145, 235)
+        COLOR_BOTTOM_BORDER = (35, 95, 160)
+
+        pygame.draw.rect(surface, COLOR_BOTTOM_BG, bottom_rect, border_radius=20)
+        pygame.draw.rect(surface, COLOR_BOTTOM_BORDER, bottom_rect, 4, border_radius=20)
+
+        # Calculate Text
         mins, secs = divmod(int(timer_seconds), 60)
         timer_str = f"{mins:02d}:{secs:02d}"
-
         player = p1 if p1.username == "You" else p2
 
-        cash_surf = UI_FONT.render(f"${player.money}", True, (255, 255, 0))
+        # Format fonts
         time_surf = UI_FONT.render(timer_str, True, (255, 255, 255))
-        income_surf = UI_FONT.render(f"+{player.eco}", True, (100, 255, 100))
+        cash_surf = UI_FONT.render(f"${player.money}", True, (255, 255, 0))
+        income_surf = UI_FONT.render(f"+ ${player.eco}", True, (100, 255, 100))
 
-        label_font = pygame.font.SysFont("Arial", 12, bold=True)
-        eco_label = label_font.render("INCOME", True, (210, 210, 210))
-        cash_label = label_font.render("CASH", True, (210, 210, 210))
+        # Stack vertically inside the bottom badge
+        spacing = bottom_badge_h // 4
+        surface.blit(time_surf, (center_x - time_surf.get_width() // 2,
+                                 bottom_badge_y + spacing * 1 - time_surf.get_height() // 2))
+        surface.blit(cash_surf, (center_x - cash_surf.get_width() // 2,
+                                 bottom_badge_y + spacing * 2 - cash_surf.get_height() // 2 + 2))
+        surface.blit(income_surf, (center_x - income_surf.get_width() // 2,
+                                   bottom_badge_y + spacing * 3 - income_surf.get_height() // 2 + 4))
 
-        text_y = header_rect.centery - (time_surf.get_height() // 2)
-
-        # Money (Left side of badge)
-        surface.blit(cash_label, (header_rect.x + 8, header_rect.y + 4))
-        surface.blit(cash_surf, (header_rect.x + 8, text_y + 5))
-
-        # Timer (Center of badge)
-        surface.blit(time_surf, (center_x - time_surf.get_width() // 2, text_y))
-
-        # Income (Right side of badge)
-        surface.blit(eco_label, (header_rect.right - eco_label.get_width() - 8, header_rect.y + 4))
-        surface.blit(income_surf, (header_rect.right - income_surf.get_width() - 8, text_y + 5))
-
-        # 3. Draw screen borders
+        # 3. Draw screen borders (Drawn last so they overlay the edges cleanly)
         pygame.draw.rect(surface, self.COLOR_BORDER, (0, 0, self.screen_width, self.border_thickness))
         pygame.draw.rect(surface, self.COLOR_BORDER,
                          (0, self.screen_height - self.border_thickness, self.screen_width, self.border_thickness))
+
+
 
 
 class UpgradeMenu:

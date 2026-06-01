@@ -94,7 +94,6 @@ class Map:
         return [w, h]
 
     def draw_map(self, players):
-        # self.screen.blit(pygame.transform.flip(self.bg_scaled, True, False), (self.shop_width, 0))
         for p in players:
             self.screen.blit(self.bg_scaled, (p.game_rect.x, 0))
             p.bloons_list.draw(self.screen)

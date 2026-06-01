@@ -38,12 +38,11 @@ class Projectile(pygame.sprite.Sprite):
         self.hit_bloons = set()
 
         pygame.mixer.init()
-        try:
-            if monkey.size:
-                _PROJ_NORM_W = monkey.size[0] / _BASE_GAME_W
-                _PROJ_NORM_H = monkey.size[1] / _BASE_GAME_H
-        except:
-            pass
+
+        self.size = None
+        if monkey.proj_size is not None:
+            self.size = [monkey.proj_size[0] / _BASE_GAME_W]
+            self.size.append(monkey.proj_size[1] / _BASE_GAME_H)
 
 
     def update_proj_rect(self, game_rect):
@@ -56,8 +55,12 @@ class Projectile(pygame.sprite.Sprite):
 
         sx = game_rect.x + self.pos.x * game_rect.width
         sy = game_rect.y + self.pos.y * game_rect.height
-        pw = max(1, int(_PROJ_NORM_W * game_rect.width))
-        ph = max(1, int(_PROJ_NORM_H * game_rect.height))
+        if self.size is None:
+            pw = max(1, int(_PROJ_NORM_W * game_rect.width))
+            ph = max(1, int(_PROJ_NORM_H * game_rect.height))
+        else:
+            pw = max(1, int(self.size[0] * game_rect.width))
+            ph = max(1, int(self.size[1] * game_rect.height))
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
         self.image = pygame.transform.rotate(self.image, self.angle)
@@ -106,7 +109,6 @@ class Projectile(pygame.sprite.Sprite):
                     num = random.randint(1, 4)
                     pygame.mixer.Sound(f"assets/sounds/{SOUNDS["pop" + str(num)]}").play()
                     self.pierce -= 1
-                    print(self.pierce)
                     if self.pierce <= 0:
                         self.kill()
                         break

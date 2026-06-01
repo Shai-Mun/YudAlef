@@ -21,6 +21,8 @@ def upgrade_menu(monkeys_list, pos):
 class Monkey(pygame.sprite.Sprite):
     def __init__(self, m_type, r_pos, m_id):
         super().__init__()
+        global _MONKEY_NORM_W, _MONKEY_NORM_H
+
         stats = MONKEY_DATA[m_type]['base']
 
         self.type = m_type
@@ -52,13 +54,16 @@ class Monkey(pygame.sprite.Sprite):
         self.id = m_id
 
         self.hitscan = stats.get('hitscan', False)  # Check if hitscan weapon
-
-        # Buffer to hold hitscan rewards until Player.py asks for them
         self.pending_children = []
         self.pending_money = 0
 
+        self.proj_size = None
+        self.size = None
+        if "proj_size" in stats:
+            self.proj_size = stats['proj_size']
         if "size" in stats:
-            self.size = stats['size']
+            self.size = [stats['size'][0] / _BASE_GAME_W]
+            self.size.append(stats['size'][1] / _BASE_GAME_H)
 
     def update_monkey_rect(self, game_rect):
         """
@@ -69,8 +74,12 @@ class Monkey(pygame.sprite.Sprite):
         """
         sx = game_rect.x + self.pos.x * game_rect.width
         sy = game_rect.y + self.pos.y * game_rect.height
-        pw = max(1, int(_MONKEY_NORM_W * game_rect.width))
-        ph = max(1, int(_MONKEY_NORM_H * game_rect.height))
+        if self.size is None:
+            pw = max(1, int(_MONKEY_NORM_W * game_rect.width))
+            ph = max(1, int(_MONKEY_NORM_H * game_rect.height))
+        else:
+            pw = max(1, int(self.size[0] * game_rect.width))
+            ph = max(1, int(self.size[1] * game_rect.height))
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
         if self.type is not "tack_shooter":
@@ -153,6 +162,8 @@ class Monkey(pygame.sprite.Sprite):
                     setattr(self, key, getattr(self, key) - upgrade[key])
                 elif key == 'weaknesses':
                     getattr(self, key).remove(upgrade[key])
+                elif key == 'size':
+                    setattr(self, key, [upgrade[key][0] / _BASE_GAME_W, upgrade[key][1] / _BASE_GAME_W])
                 else:
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, upgrade[key])

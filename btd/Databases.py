@@ -58,7 +58,7 @@ MONKEY_DATA = {
             "path_1": [
                 {"name": "Long Range", "cost": 90, "original_range": 187.5, "fire_rate": 0},
                 {"name": "Enhanced Eyesight", "cost": 160, "original_range": 225, "fire_rate": -100},
-                {"name": "Spike-O-Pult", "cost": 500, "pierce": 40, "fire_rate": -600, "projectile": "spike", "projectile_speed": 450, "proj_dist_mult": 100},
+                {"name": "Spike-O-Pult", "cost": 500, "pierce": 40, "fire_rate": -600, "projectile": "spike", "projectile_speed": 450, "proj_dist_mult": 100, "size": [80, 80]},
                 {"name": "Juggernaut", "cost": 1900, "pierce": 100, "fire_rate": 100, "weaknesses": "lead", "projectile_speed": 600},
             ],
             "path_2": [
@@ -86,7 +86,7 @@ MONKEY_DATA = {
             # This combination shoots 8 projectiles evenly in a 360-degree circle
             "proj_count": 8,
             "proj_angle": 45,
-            "size": (20, 10)
+            "proj_size": (20, 10)
         },
         "upgrades": {
             "path_1": [
@@ -132,7 +132,8 @@ MONKEY_DATA = {
             "projectile_speed": 4000,  # Extremely fast bullet
             "proj_dist_mult": 1.0,
             "proj_count": 1,
-            "proj_angle": 0
+            "proj_angle": 0,
+            "size": [100, 100]
         },
         "upgrades": {
             "path_1": [
@@ -166,4 +167,42 @@ SOUNDS = {
     "cash": "59_ReceivedCash.mp3",
     "sell": "62_Sell.mp3",
     "upgrade": "70_Upgrade.mp3"
+}
+
+NATURAL_ROUNDS = {
+    # --- EARLY GAME: Basic speed and volume ---
+    1: [{"color": "red", "count": 20, "spacing": 1000}],
+    2: [{"color": "red", "count": 30, "spacing": 800}],
+    3: [{"color": "red", "count": 20, "spacing": 600}, {"color": "blue", "count": 5, "spacing": 1000}],
+    4: [{"color": "red", "count": 30, "spacing": 500}, {"color": "blue", "count": 15, "spacing": 800}],
+    5: [{"color": "blue", "count": 25, "spacing": 600}, {"color": "green", "count": 5, "spacing": 1200}],
+    6: [{"color": "blue", "count": 20, "spacing": 400}, {"color": "green", "count": 15, "spacing": 800}],
+    7: [{"color": "green", "count": 25, "spacing": 600}, {"color": "yellow", "count": 5, "spacing": 1000}],
+    8: [{"color": "green", "count": 20, "spacing": 400}, {"color": "yellow", "count": 20, "spacing": 600}],
+    9: [{"color": "yellow", "count": 30, "spacing": 500}],
+
+    # --- MID GAME: Speedsters and Immunities ---
+    10: [{"color": "yellow", "count": 20, "spacing": 400}, {"color": "pink", "count": 10, "spacing": 600}],
+    11: [{"color": "pink", "count": 25, "spacing": 400}],
+    12: [{"color": "pink", "count": 15, "spacing": 300}, {"color": "black", "count": 5, "spacing": 800}],
+    13: [{"color": "black", "count": 10, "spacing": 600}, {"color": "white", "count": 10, "spacing": 600}],
+    14: [{"color": "pink", "count": 30, "spacing": 200}, {"color": "black", "count": 15, "spacing": 500}],
+    15: [{"color": "lead", "count": 10, "spacing": 1000}, {"color": "pink", "count": 20, "spacing": 300}],
+    16: [{"color": "lead", "count": 15, "spacing": 800}, {"color": "zebra", "count": 10, "spacing": 600}],
+    17: [{"color": "zebra", "count": 20, "spacing": 500}, {"color": "rainbow", "count": 5, "spacing": 1000}],
+    18: [{"color": "rainbow", "count": 15, "spacing": 600}],
+    19: [{"color": "lead", "count": 20, "spacing": 400}, {"color": "rainbow", "count": 20, "spacing": 500}],
+
+    # --- LATE GAME: MOAB-Class and Ceramics ---
+    20: [{"color": "moab", "count": 1, "spacing": 1000}],
+    21: [{"color": "rainbow", "count": 30, "spacing": 300}, {"color": "ceramic", "count": 5, "spacing": 800}],
+    22: [{"color": "ceramic", "count": 15, "spacing": 600}],
+    23: [{"color": "moab", "count": 2, "spacing": 2000}, {"color": "ceramic", "count": 10, "spacing": 500}],
+    24: [{"color": "ceramic", "count": 30, "spacing": 400}],
+    25: [{"color": "moab", "count": 5, "spacing": 1000}],
+    26: [{"color": "bfb", "count": 1, "spacing": 1000}],
+    27: [{"color": "ceramic", "count": 50, "spacing": 200}, {"color": "moab", "count": 4, "spacing": 800}],
+    28: [{"color": "bfb", "count": 2, "spacing": 2000}],
+    29: [{"color": "ceramic", "count": 80, "spacing": 150}, {"color": "bfb", "count": 3, "spacing": 1500}],
+    30: [{"color": "zomg", "count": 1, "spacing": 1000}, {"color": "moab", "count": 10, "spacing": 500}],
 }

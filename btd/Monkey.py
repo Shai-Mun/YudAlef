@@ -56,6 +56,7 @@ class Monkey(pygame.sprite.Sprite):
         self.hitscan = stats.get('hitscan', False)  # Check if hitscan weapon
         self.pending_children = []
         self.pending_money = 0
+        self.pending_hits = []
 
         self.proj_size = None
         self.size = None
@@ -120,10 +121,9 @@ class Monkey(pygame.sprite.Sprite):
 
                 if self.hitscan:
                     # Instantly apply ALL damage to the single target.
-                    # Because we updated Bloon.py, it will perfectly calculate
-                    # the layer downgrades and return the exact surviving children!
                     children, money = target.take_damage(self.dmg)
                     self.pending_money += money
+                    self.pending_hits.append({"id": target.id, "dmg": self.dmg})  # <--- Add this line
 
                     if children:
                         self.pending_children.extend(children)
@@ -177,7 +177,8 @@ class Monkey(pygame.sprite.Sprite):
             p.update_proj_rect(game_rect)
 
     def check_hits(self, grid):
-        children = []
+        all_bloons_hit = []
+        all_children = []
         total_monkey_earnings = 0
 
         if self.pending_money > 0:
@@ -185,13 +186,18 @@ class Monkey(pygame.sprite.Sprite):
             self.pending_money = 0
 
         if self.pending_children:
-            children.extend(self.pending_children)
+            all_children.extend(self.pending_children)
             self.pending_children = []
 
+        if self.pending_hits:
+            all_bloons_hit.extend(self.pending_hits)
+            self.pending_hits = []
+
         for p in self.projectile_list:
-            curr_children, curr_earnings = p.check_hit(grid)
-            if curr_children:
-                children.extend(curr_children)
+            curr_children, curr_earnings, curr_hits = p.check_hit(grid)
+
+            all_children.extend(curr_children)
+            all_bloons_hit.extend(curr_hits)
             total_monkey_earnings += curr_earnings
-        return children, total_monkey_earnings
+        return all_children, total_monkey_earnings, all_bloons_hit
 

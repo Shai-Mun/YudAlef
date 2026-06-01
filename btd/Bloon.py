@@ -8,6 +8,10 @@ _BLOON_NORM_H = 40 / _BASE_GAME_H
 DEF_SPEED = 65 / _BASE_GAME_W
 DEFAULT_BLOON = {"speed": DEF_SPEED * 1, "child": None,   "image": "red_bloon.png"}
 BLOON_DATA = {
+    "zomg": {"speed": DEF_SPEED * 0.18, "child": "bfb~4", "dmg": 4000, "image": "zomg.png", "is_moab": True, "hp": 4000},
+    "bfb": {"speed": DEF_SPEED * 0.25, "child": "moab~4", "dmg": 700, "image": "bfb.png", "is_moab": True, "hp": 700},
+    "moab": {"speed": DEF_SPEED * 0.5, "child": "ceramic~4", "dmg": 200, "image": "moab.png", "is_moab": True, "hp": 200},
+    "ceramic": {"speed": DEF_SPEED * 1.5, "child": "rainbow~2", "dmg": 104, "image": "ceramic_bloon.png", "hp": 10},
     "rainbow": {"speed": DEF_SPEED * 1, "child": "zebra~2", "dmg": 47, "image": "rainbow_bloon.png"},
     "zebra": {"speed": DEF_SPEED * 1, "child": "black~1~white~1", "dmg": 23, "image": "zebra_bloon.png", "immunity": ["freeze", "explosion"]},
     "lead": {"speed": DEF_SPEED * 1, "child": "black~2", "dmg": 23, "image": "lead_bloon.png", "immunity": ["sharp"]},
@@ -23,7 +27,7 @@ BLOON_DATA = {
 
 
 class Bloon(pygame.sprite.Sprite):
-    def __init__(self, color: str, side: int, path_list: list, child_properties = None):
+    def __init__(self, color: str, side: int, path_list: list, b_id, child_properties = None):
         """
         Args:
             color:     Bloon colour key ("red", "blue", …).
@@ -32,11 +36,15 @@ class Bloon(pygame.sprite.Sprite):
                        relative to the player's game-area rectangle.
         """
         super().__init__()
+
+        self.id = b_id
+
         stats = BLOON_DATA.get(color.lower(), DEFAULT_BLOON)
 
         self.type = color.lower()
         self.speed = stats["speed"]  # Fraction of game-area width per second
         self.dmg = stats["dmg"]
+        self.hp = stats.get('hp')
         self.side = side
         self.path = path_list  # Normalised waypoints – shared reference is fine
 
@@ -54,6 +62,7 @@ class Bloon(pygame.sprite.Sprite):
             self.target_node = child_properties["target_node"]
             self.distance = child_properties["distance"]
             self.pos = child_properties["pos"].copy()
+
     def update_bloon_rect(self, game_rect):
         """
         Convert the normalised pos into screen pixels and rebuild self.image /
@@ -104,61 +113,71 @@ class Bloon(pygame.sprite.Sprite):
         popped = 0
         rem_dmg = dmg
 
+        # print(self.hp)
         while rem_dmg > 0:
-            child_type = BLOON_DATA[self.type]["child"]
+            if self.hp is None or self.hp <= 0:
+                child_type = BLOON_DATA[self.type]["child"]
 
-            if child_type:
-                if "~" in child_type:
-                    # 1. The bloon splits! Kill the parent layer.
+                if child_type:
+                    if "~" in child_type:
+                        # 1. The bloon splits! Kill the parent layer.
+                        self.kill()
+                        popped += 1
+                        rem_dmg -= 1
+
+                        # 2. Spawn the children
+                        fields = child_type.split("~")
+                        spawned_children = []
+                        child_index = 0
+                        for i in range(len(fields) // 2):
+                            c_type = fields[2 * i]
+                            count = int(fields[2 * i + 1])
+                            for _ in range(count):
+                                child_properties = {"target_node": self.target_node, "distance": self.distance,
+                                                    "pos": self.pos}
+                                child_id = f"{self.id}_{child_index}"
+                                child_index += 1
+                                spawned_children.append(Bloon(c_type, self.side, self.path, child_id, child_properties))
+
+                        # 3. Distribute any leftover damage evenly to the new children!
+                        if rem_dmg > 0:
+                            dmg_per_child = rem_dmg // len(spawned_children)
+                            extra_dmg = rem_dmg % len(spawned_children)
+
+                            for idx, child in enumerate(spawned_children):
+                                child_dmg = dmg_per_child + (1 if idx < extra_dmg else 0)
+                                if child_dmg > 0:
+                                    # Recursively damage the child!
+                                    sub_children, sub_popped = child.take_damage(child_dmg)
+                                    children.extend(sub_children)
+                                    popped += sub_popped
+                                else:
+                                    children.append(child)
+                        else:
+                            children.extend(spawned_children)
+
+                        return children, popped
+
+                    else:
+                        # Single child downgrade (e.g. Blue -> Red)
+                        self.type = child_type
+                        stats = BLOON_DATA[self.type]
+                        self.speed = stats["speed"]
+                        self.dmg = stats.get("dmg", 1)
+                        self.original_image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
+                        self.original_image.set_colorkey(PINK)
+
+                        popped += 1
+                        rem_dmg -= 1
+                else:
+                    # No child (Red Bloon popping completely)
                     self.kill()
                     popped += 1
-                    rem_dmg -= 1
-
-                    # 2. Spawn the children
-                    fields = child_type.split("~")
-                    spawned_children = []
-                    for i in range(len(fields) // 2):
-                        c_type = fields[2 * i]
-                        count = int(fields[2 * i + 1])
-                        for _ in range(count):
-                            child_properties = {"target_node": self.target_node, "distance": self.distance,
-                                                "pos": self.pos}
-                            spawned_children.append(Bloon(c_type, self.side, self.path, child_properties))
-
-                    # 3. Distribute any leftover damage evenly to the new children!
-                    if rem_dmg > 0:
-                        dmg_per_child = rem_dmg // len(spawned_children)
-                        extra_dmg = rem_dmg % len(spawned_children)
-
-                        for idx, child in enumerate(spawned_children):
-                            child_dmg = dmg_per_child + (1 if idx < extra_dmg else 0)
-                            if child_dmg > 0:
-                                # Recursively damage the child!
-                                sub_children, sub_popped = child.take_damage(child_dmg)
-                                children.extend(sub_children)
-                                popped += sub_popped
-                            else:
-                                children.append(child)
-                    else:
-                        children.extend(spawned_children)
-
                     return children, popped
 
-                else:
-                    # Single child downgrade (e.g. Blue -> Red)
-                    self.type = child_type
-                    stats = BLOON_DATA[self.type]
-                    self.speed = stats["speed"]
-                    self.dmg = stats.get("dmg", 1)
-                    self.original_image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
-                    self.original_image.set_colorkey(PINK)
-
-                    popped += 1
-                    rem_dmg -= 1
             else:
-                # No child (Red Bloon popping completely)
-                self.kill()
-                popped += 1
-                return children, popped
+                self.hp -= 1
+                rem_dmg -= 1
+
 
         return children, popped

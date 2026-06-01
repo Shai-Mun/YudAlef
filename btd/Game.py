@@ -150,7 +150,7 @@ def draw_transparent_circle(screen, c, player):
 
 
 def send_bloon(sender, receiver, bloon_name):
-    global e_key, sock, current_round
+    global e_key, sock, current_round, curr_bloon_id
 
     # FEATURE 2: Limit the queue to 5 batches maximum
     if len(sender.send_queue) >= 5:
@@ -174,27 +174,16 @@ def send_bloon(sender, receiver, bloon_name):
 
         # Add to the OPPONENT'S queue
         for _ in range(data["count"]):
-            # Create bloon with the receiver's path type
-            new_bloon = Bloon(data["color"], receiver.side, receiver.path)
+            # Create a unique ID for this sent bloon
+            b_id = f"sent_{sender.side}_{curr_bloon_id}"
+
+            # Create bloon with the receiver's path type and our new ID
+            new_bloon = Bloon(data["color"], receiver.side, receiver.path, b_id)
             receiver.bloons_queue.append((new_bloon, data["load_time"]))
-            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data['color']}~{data['load_time']}", e_key)
+            send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data['color']}~{data['load_time']}~{b_id}",
+                           e_key)
 
-# def send_bloon(sender, receiver, bloon_name):
-#     global e_key, sock, current_round
-#
-#     data = BLOON_CONFIG.get(bloon_name)
-#     cost = data["cost"]
-#     if current_round >= int(data['round']) and sender.try_purchase(cost):
-#         sender.eco += round(data["eco"])  # Increase eco
-#
-#         # Add to the OPPONENT'S queue
-#         for _ in range(data["count"]):
-#             # Create bloon with the receiver's path type
-#             new_bloon = Bloon(data["color"], receiver.side, receiver.path)
-#             receiver.bloons_queue.append((new_bloon, data["load_time"]))
-#             send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{receiver.side}~{data["color"]}~{data["load_time"]}", e_key)
-
-
+            curr_bloon_id += 1
 
 
 def update_all_layouts(game_map, gui, upg_gui, players, f_screen, e=None):
@@ -209,15 +198,16 @@ def update_all_layouts(game_map, gui, upg_gui, players, f_screen, e=None):
 e_key = ""
 sock = ""
 curr_monkey_id = 1
+curr_bloon_id = 1
 
 current_round = 0
 time_for_round = 45 # seconds
-last_round_start = 35 * 1000
+last_round_start = -35 * 1000
 
 
 def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     from Player import GameUser
-    global sock, e_key, current_round, time_for_round, last_round_start
+    global sock, e_key, current_round, time_for_round, last_round_start, curr_bloon_id
 
     e_key = enc_key
     sock = socket
@@ -260,9 +250,12 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
     # --- 5. MAIN LOOP ---
     while running:
         # A. EVENT HANDLING
-        try:
-            byte_data = recv_by_size(sock, e_key)
-            if byte_data:
+        while True:
+            try:
+                byte_data = recv_by_size(sock, e_key)
+                if not byte_data:
+                    break  # No more network messages available this frame
+
                 msg = byte_data.decode()
 
                 if msg.startswith("PLACE_MONKEY~"):
@@ -270,9 +263,9 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                     enemy.monkeys_list.add(Monkey(m_type, (float(rel_x), float(rel_y)), num))
 
                 elif msg.startswith("SPAWN_BLOON~"):
-                    _, side, b_color, loadtime = msg.split("~")
+                    _, side, b_color, loadtime, curr_id = msg.split("~")
                     player = p1 if int(side) == 1 else p2
-                    player.bloons_queue.append((Bloon(b_color, player.side, player.path), int(loadtime)))
+                    player.bloons_queue.append((Bloon(b_color, player.side, player.path, curr_id), int(loadtime)))
 
                 elif msg.startswith("UPGRADE_MONKEY~"):
                     _, side, m_id, path = msg.split("~")
@@ -287,10 +280,29 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                     for monkey in player.monkeys_list:
                         if int(monkey.id) == int(m_id):
                             monkey.kill()
-        except BlockingIOError:
-            pass
-        except Exception as e:
-            print(f"Network error during match: {e}")
+
+
+                elif msg.startswith("HIT_BLOON~"):
+                    # 1. Unpack 'side' from the split message
+                    _, side, b_id, dmg = msg.split("~")
+
+                    # 2. dynamically find the correct player object based on the side sent
+                    player = p1 if int(side) == 1 else p2
+
+                    # 3. Find the specific bloon on that player's board
+                    for bloon in player.bloons_list:
+                        if str(bloon.id) == str(b_id):
+                            new_children, _ = bloon.take_damage(int(dmg))
+                            if new_children:
+                                for child in new_children:
+                                    player.bloons_list.add(child)
+                            break
+
+            except BlockingIOError:
+                break  # Socket buffer empty, proceed to game mechanics
+            except Exception as e:
+                print(f"Network error during match: {e}")
+                break
 
         current_time = pygame.time.get_ticks()
 
@@ -309,17 +321,21 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
                 if event.button == 1:
                     handle_left_click(game_gui, upgrade_gui, event.pos, me, enemy)
                 elif event.button == 2:
-                    colors = ["red", "blue", "green", "yellow", "pink", "black", "white", "rainbow", "lead", "zebra"]
+                    # colors = ["red", "blue", "green", "yellow", "pink", "black", "white", "rainbow", "lead", "zebra"]
+                    colors = ["ceramic", "moab", "bfb", "zomg"]
                     c = random.choice(colors)
-                    me.bloons_list.add(Bloon(c, 1, me.path))
-                    enemy.bloons_list.add(Bloon(c, 2, enemy.path))
-                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{me.side}~{c}~0", e_key)
-                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{enemy.side}~{c}~0", e_key)
+                    # me.bloons_list.add(Bloon(c, 1, me.path))
+                    b_id = f"sent_{me.side}_{curr_bloon_id}"
+                    enemy.bloons_list.add(Bloon(c, 2, enemy.path, b_id))
+                    # send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{me.side}~{c}~0", e_key)
+                    send_with_size(sock, f"GAME_ACTION~SPAWN_BLOON~{enemy.side}~{c}~0~{b_id}", e_key)
+                    curr_bloon_id += 1
 
             elif event.type == MOUSEWHEEL and not game_over:
                 game_gui.handle_scroll(-event.y)
 
         # Ensure rounds only tick forward if the game isn't over
+                # Ensure rounds only tick forward if the game isn't over
         if not game_over and (current_time - last_round_start >= time_for_round * 1000 or (
                 me.round_finished and enemy.round_finished)):
             current_round += 1
@@ -327,15 +343,26 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
             from Databases import NATURAL_ROUNDS
             batches = NATURAL_ROUNDS[current_round]
+
+            # Start a fresh counter for this specific round
+            round_bloon_counter = 0
+
             for batch in batches:
                 for _ in range(int(batch['count'])):
-                    new_bloon = Bloon(batch["color"], me.side, me.path)
+                    # Create a deterministic ID shared by both players
+                    b_id = f"nat_{current_round}_{round_bloon_counter}"
+
+                    new_bloon = Bloon(batch["color"], me.side, me.path, b_id)
                     me.round_bloons.append((new_bloon, batch["spacing"]))
                     me.round_finished = False
 
-                    new_bloon = Bloon(batch["color"], enemy.side, enemy.path)
+                    # Pass the EXACT same ID to the enemy's bloon
+                    new_bloon = Bloon(batch["color"], enemy.side, enemy.path, b_id)
                     enemy.round_bloons.append((new_bloon, batch["spacing"]))
-                    me.round_finished = False
+                    enemy.round_finished = False
+
+                    # Increment so the next bloon gets a unique ID
+                    round_bloon_counter += 1
 
             if current_round % 2 == 0 and current_round > 0:
                 game_gui.bloon_buttons[current_round - 2].set_img('bloon_' + str(current_round - 2))
@@ -346,8 +373,8 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
         # Only update gameplay logic if the match is ongoing
         if not game_over:
-            me.update(dt, current_time)
-            enemy.update(dt, current_time)
+            me.update(dt, current_time, sock)
+            enemy.update(dt, current_time, sock)
 
             # Check for win condition
             if p1.lives <= 0:

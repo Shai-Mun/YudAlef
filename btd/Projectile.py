@@ -91,6 +91,7 @@ class Projectile(pygame.sprite.Sprite):
 
     def check_hit(self, grid):
         money_earned = 0
+        bloons_hit = []
         children = []
         targets = grid.get_nearby_bloons(self)
         hits = pygame.sprite.spritecollide(self, targets, False)
@@ -99,13 +100,16 @@ class Projectile(pygame.sprite.Sprite):
             if bloon not in self.hit_bloons and self.pierce > 0:
                 # The bloon tells us how much money we just made
                 if bloon.type not in self.weaknesses:
+                    bloons_hit.append({"id": bloon.id, "dmg": self.dmg})
+
                     curr_children, money = bloon.take_damage(self.dmg)
                     money_earned += money
 
-                    if curr_children:
-                        children.extend(curr_children)
+                    children.extend(curr_children)
 
                     self.hit_bloons.add(bloon)
+                    if bloon.type == "ceramic":
+                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
 
                     num = random.randint(1, 4)
                     pygame.mixer.Sound(f"assets/sounds/{SOUNDS["pop" + str(num)]}").play()
@@ -120,7 +124,7 @@ class Projectile(pygame.sprite.Sprite):
                         self.kill()
                         break
                 else:
-                    if bloon.type == "lead" or bloon.type == "frozen":
+                    if bloon.type == "lead":
                         pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
 
-        return children, money_earned
+        return children, money_earned, bloons_hit

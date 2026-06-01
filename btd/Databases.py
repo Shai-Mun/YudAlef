@@ -203,6 +203,7 @@ SOUNDS = {
     "place": "18_PlaceTower.mp3",
     "frozenHit": "20_FrozenBloonHit.mp3",
     "leadHit": "23_MetalBloonHit.mp3",
+    "ceramicHit": "27_CeramicBloonHit.mp3",
     "pop4": "28_Pop4.mp3",
     "pop3": "29_Pop2.mp3",
     "pop2": "30_Pop3.mp3",

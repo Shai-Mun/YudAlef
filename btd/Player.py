@@ -104,14 +104,20 @@ class GameUser:
                 self.bloons_list.add(self.bloons_queue.pop(0)[0])
                 self.last_send = curr_time
 
+        # 1. Spawn bloons sequentially if the queue has elements
         if len(self.round_bloons) > 0:
             if curr_time - self.last_round_send >= self.round_bloons[0][1]:
                 self.bloons_list.add(self.round_bloons.pop(0)[0])
                 self.last_round_send = curr_time
-        elif curr_time > 10000:
-            self.round_finished = True
 
-    def update(self, dt, current_time):
+        # 2. Executed ONLY when all round bloons have finished spawning from the queue
+        else:
+            if len(self.bloons_list) == 0 and curr_time > 10000:
+                self.round_finished = True
+            else:
+                self.round_finished = False
+
+    def update(self, dt, current_time, sock):
         # 1. Handle Income Timer
         self.update_eco(dt)
 
@@ -133,20 +139,30 @@ class GameUser:
         self.grid.clear()
         for b in self.bloons_list:
             if b.move_bloon(dt):
-                self.lives -= b.dmg
+                if self.username == 'You':
+                    self.lives -= b.dmg
                 b.kill()
             b.update_bloon_rect(self.game_rect)
             self.grid.insert_bloon(b)
 
         for m in self.monkeys_list:
-            m.check_shoot(current_time, self.bloons_list)
             m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
             m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
-            children, money = m.check_hits(self.grid)
-            self.money += money
-            if len(children) > 0:
-                for child in children:
-                    self.bloons_list.add(child)
+
+            if self.username == 'You':
+                m.check_shoot(current_time, self.bloons_list)
+                children, money, hits = m.check_hits(self.grid)
+                self.money += money
+                if len(children) > 0:
+                    for child in children:
+                        self.bloons_list.add(child)
+
+                from Game import e_key
+                from enc_utils import send_with_size
+                for hit in hits:
+                    send_with_size(sock, f"GAME_ACTION~HIT_BLOON~{self.side}~{hit['id']}~{hit['dmg']}", e_key)
+                    # need to update through the sock what was damaged using id!
+                        # HIT_BLOON~b_id~dmg
 
     def try_purchase(self, cost):
         if self.money >= cost:

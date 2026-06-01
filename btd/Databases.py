@@ -69,6 +69,7 @@ MONKEY_DATA = {
             ]
         }
     },
+
     "tack_shooter": {
         "image": 'Tack Shooter.png',
         "base": {
@@ -117,6 +118,7 @@ MONKEY_DATA = {
             ]
         }
     },
+
     "sniper_monkey": {
         "image": 'Sniper Monkey.png',
         "base": {
@@ -150,6 +152,45 @@ MONKEY_DATA = {
                 {"name": "Night Vision Goggles", "cost": 400},  # Down to 650ms
                 {"name": "Semi-Automatic Rifle", "cost": 2750, "fire_rate": 1010},  # Down to 350ms
                 {"name": "Supply Drop", "cost": 4200}  # Ability Gives 500-1000 cash
+            ]
+        }
+    },
+
+    "bomb_shooter": {
+        "image": 'Bomb Shooter.png',
+        "base": {
+            "cost": 650,
+            "original_range": 135,
+            "pierce": 18,  # Represents the base explosion blast radius/cap
+            "fire_rate": 1500,  # ms (Shoots roughly once every 1.5 seconds)
+            "dmg": 1,
+            "image": "bomb_base.png",
+            "projectile": "bomb",
+            "weaknesses": ["black", "zebra"], # Black/Zebra bloons are immune to explosives
+            "projectile_speed": 450,
+            "proj_dist_mult": 1.0,
+            "proj_count": 1,
+            "proj_angle": 0,
+            "size": [80, 80]
+        },
+        "upgrades": {
+            "path_1": [
+                {"name": "Extra Range Bombs", "cost": 200, "original_range": 175},
+                # Frags can pop black bloons, so this triggers your weakness removal logic
+                {"name": "Frag Bombs", "cost": 300, "weaknesses": "black", "projectile": "frag_bomb"},
+                # Cluster massively increases the amount of bloons it can hit per shot
+                {"name": "Cluster Bombs", "cost": 800, "pierce": 50, "projectile": "cluster_bomb"},
+                # Impact stuns bloons, which you would trigger off this specific projectile name
+                {"name": "Bloon Impact", "cost": 3200, "pierce": 100, "projectile": "impact_bomb"}
+            ],
+            "path_2": [
+                {"name": "Bigger Bombs", "cost": 400, "pierce": 30},
+                # Changes projectile behavior entirely, shoots much faster, and travels faster
+                {"name": "Missile Launcher", "cost": 400, "fire_rate": 400, "projectile_speed": 900, "projectile": "missile", "original_range": 160},
+                # Engine handles MOAB damage multiplier via the "mauler_missile" projectile string
+                {"name": "MOAB Mauler", "cost": 900, "projectile": "mauler_missile", "pierce": 40},
+                # Ability upgrade
+                {"name": "MOAB Assassin", "cost": 3200}
             ]
         }
     }

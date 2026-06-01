@@ -30,6 +30,7 @@ def initialize_assets():
         "dart_monkey": load_sprite("assets/monkeys/dart_monkey/dart_base.png", PINK),
         "tack_shooter": load_sprite("assets/monkeys/tack_shooter/tack_base.png", PINK),
         "sniper_monkey": load_sprite("assets/monkeys/sniper_monkey/sniper_base.png", PINK),
+        "bomb_shooter": load_sprite("assets/monkeys/bomb_shooter/bomb_base.png", PINK),
         # Add other monkeys here as you create them
     }
 

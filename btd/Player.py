@@ -54,7 +54,7 @@ class GameUser:
             "monkey_0": "dart_monkey",
             "monkey_1": "tack_shooter",
             "monkey_2": "sniper_monkey",
-            "monkey_3": "dart_monkey"
+            "monkey_3": "bomb_shooter"
         }
         self.lives = 200
 

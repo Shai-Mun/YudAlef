@@ -146,11 +146,15 @@ class GameUser:
             self.grid.insert_bloon(b)
 
         for m in self.monkeys_list:
-            m.move_projectiles(dt, self.game_rect)  # Pass game_rect instead of self.size
-            m.update_monkey_rect(self.game_rect)  # Rebuild monkey's pixel rect for rendering
+            m.move_projectiles(dt, self.game_rect)
+            m.update_monkey_rect(self.game_rect)
 
-            if self.username == 'You':
+            # FIX: Let check_shoot run if an ability is active to spawn visual projectiles
+            if self.username == 'You' or getattr(m, 'ability_active', False):
                 m.check_shoot(current_time, self.bloons_list)
+
+            # Keep hit detection strictly to the local player to avoid double-counting
+            if self.username == 'You':
                 children, money, hits = m.check_hits(self.grid)
                 self.money += money
                 if len(children) > 0:
@@ -160,9 +164,9 @@ class GameUser:
                 from Game import e_key
                 from enc_utils import send_with_size
                 for hit in hits:
-                    send_with_size(sock, f"GAME_ACTION~HIT_BLOON~{self.side}~{hit['id']}~{hit['dmg']}", e_key)
-                    # need to update through the sock what was damaged using id!
-                        # HIT_BLOON~b_id~dmg
+                    stun_val = hit.get("stun", 0)
+                    send_with_size(sock, f"GAME_ACTION~HIT_BLOON~{self.side}~{hit['id']}~{hit['dmg']}~{stun_val}",
+                                   e_key)
 
     def try_purchase(self, cost):
         if self.money >= cost:

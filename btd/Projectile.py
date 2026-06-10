@@ -4,7 +4,7 @@ import pygame
 import math
 from Databases import SOUNDS
 
-from btd.Player import _BASE_GAME_W, _BASE_GAME_H, PINK
+from Player import _BASE_GAME_W, _BASE_GAME_H, PINK
 
 _PROJ_NORM_W = 30 / _BASE_GAME_W
 _PROJ_NORM_H = 30 / _BASE_GAME_H
@@ -93,38 +93,70 @@ class Projectile(pygame.sprite.Sprite):
         money_earned = 0
         bloons_hit = []
         children = []
+
+        # Get initial targets colliding with the projectile's physical body
         targets = grid.get_nearby_bloons(self)
         hits = pygame.sprite.spritecollide(self, targets, False)
 
-        for bloon in hits:
-            if bloon not in self.hit_bloons and self.pierce > 0:
-                # The bloon tells us how much money we just made
-                if bloon.type not in self.weaknesses:
-                    bloons_hit.append({"id": bloon.id, "dmg": self.dmg})
+        for primary_bloon in hits:
+            # Ignore if already processed or if the bloon type is an explosive immunity
+            if primary_bloon in self.hit_bloons or primary_bloon.type in self.weaknesses:
+                continue
 
-                    curr_children, money = bloon.take_damage(self.dmg)
-                    money_earned += money
+            # Trigger explosion behavior for bombs/missiles
+            if "bomb" in self.type or "missile" in self.type:
+                pygame.mixer.Sound(f"assets/sounds/{SOUNDS['explosion']}").play()
 
-                    children.extend(curr_children)
+                # Define a normalized blast radius (e.g., 0.08 of game width)
+                blast_radius = 0.08
 
-                    self.hit_bloons.add(bloon)
-                    if bloon.type == "ceramic":
-                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
-
-                    num = random.randint(1, 4)
-                    pygame.mixer.Sound(f"assets/sounds/{SOUNDS["pop" + str(num)]}").play()
-
-                    self.pierce -= 1
-                    if "bomb" in self.type or "missile" in self.type:
-                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS["explosion"]}").play()
-                        self.kill()
-                        break
-
+                # Find all nearby bloons within the explosion splash zone
+                for splash_bloon in targets:
                     if self.pierce <= 0:
-                        self.kill()
                         break
-                else:
-                    if bloon.type == "lead":
-                        pygame.mixer.Sound(f"assets/sounds/{SOUNDS[bloon.type + "Hit"]}").play()
+
+                    if splash_bloon in self.hit_bloons or splash_bloon.type in self.weaknesses:
+                        continue
+
+                    # Check distance between projectile and splash targets
+                    if self.pos.distance_to(splash_bloon.pos) <= blast_radius:
+                        stun_duration = 0
+
+                        # Apply Bloon Impact stun to non-MOAB classes
+                        if self.type == 'impact_bomb':
+                            if splash_bloon.type not in ['moab', 'bfb', 'zomg']:
+                                stun_duration = 2000
+                                curr_children, money = splash_bloon.take_damage(self.dmg, 2000)
+                            else:
+                                curr_children, money = splash_bloon.take_damage(self.dmg)
+                        else:
+                            curr_children, money = splash_bloon.take_damage(self.dmg)
+
+                        bloons_hit.append({"id": splash_bloon.id, "dmg": self.dmg, "stun": stun_duration})
+                        money_earned += money
+                        children.extend(curr_children)
+
+                        self.hit_bloons.add(splash_bloon)
+                        self.pierce -= 1
+
+                # Kill the physical bomb projectile after creating the explosion
+                self.kill()
+                break
+
+            else:
+                # --- Standard Non-Explosive Projectile Logic (Darts/Tacks/etc.) ---
+                stun_duration = 0
+                curr_children, money = primary_bloon.take_damage(self.dmg)
+
+                bloons_hit.append({"id": primary_bloon.id, "dmg": self.dmg, "stun": stun_duration})
+                money_earned += money
+                children.extend(curr_children)
+
+                self.hit_bloons.add(primary_bloon)
+                self.pierce -= 1
+
+                if self.pierce <= 0:
+                    self.kill()
+                    break
 
         return children, money_earned, bloons_hit

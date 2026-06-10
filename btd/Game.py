@@ -47,7 +47,7 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
 
     action = None
     if player.active_monkey:
-        action = upg_gui.get_click(pos)
+        action = upg_gui.get_click(pos, player.active_monkey)
         if action == "sell":
             player.active_monkey.kill()
             send_with_size(sock, f"GAME_ACTION~SELL_MONKEY~{player.side}~{player.active_monkey.id}", e_key)
@@ -77,6 +77,14 @@ def handle_left_click(gui, upg_gui, pos, player, oppon):
             else:
                 print("Can't afford upgrade!")
 
+        elif action == "ability":
+            current_time = pygame.time.get_ticks()
+            # Pass your live bloon group/list so targeted abilities (like MOAB Assassin) can find targets
+            success = player.active_monkey.trigger_ability(current_time, player.bloons_list)
+
+            if success:
+                # If multiplayer is active, sync this event to the opponent immediately!
+                send_with_size(sock, f"GAME_ACTION~USE_ABILITY~{player.side}~{player.active_monkey.id}", e_key)
         elif action == "close":
             player.active_monkey = None
             return
@@ -284,18 +292,34 @@ def launch_multiplayer_game(socket, enc_key, role, enemy_name):
 
                 elif msg.startswith("HIT_BLOON~"):
                     # 1. Unpack 'side' from the split message
-                    _, side, b_id, dmg = msg.split("~")
-
+                    parts = msg.split("~")
+                    side = parts[1]
+                    b_id = parts[2]
+                    dmg = parts[3]
+                    stun = int(parts[4]) if len(parts) > 4 else 0
                     # 2. dynamically find the correct player object based on the side sent
                     player = p1 if int(side) == 1 else p2
 
                     # 3. Find the specific bloon on that player's board
                     for bloon in player.bloons_list:
                         if str(bloon.id) == str(b_id):
-                            new_children, _ = bloon.take_damage(int(dmg))
+                            new_children, _ = bloon.take_damage(int(dmg), stun)
                             if new_children:
                                 for child in new_children:
                                     player.bloons_list.add(child)
+                            break
+
+                elif msg.startswith("USE_ABILITY~"):
+                    _, side, monkey_id = msg.split("~")
+
+                    # Determine which player's monkey list to search
+                    target_player = p1 if p1.side == side else p2
+
+                    # Find the specific monkey by its unique ID
+                    for monkey in target_player.monkeys_list:
+                        if monkey.id == monkey_id:
+                            # Execute the ability on the matching remote entity
+                            monkey.trigger_ability(pygame.time.get_ticks(), target_player.bloons_list)
                             break
 
             except BlockingIOError:

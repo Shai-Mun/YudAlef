@@ -58,13 +58,16 @@ class Monkey(pygame.sprite.Sprite):
         self.pending_money = 0
         self.pending_hits = []
 
-        self.proj_size = None
+        self.proj_size = stats.get('proj_size')
         self.size = None
-        if "proj_size" in stats:
-            self.proj_size = stats['proj_size']
         if "size" in stats:
             self.size = [stats['size'][0] / _BASE_GAME_W]
             self.size.append(stats['size'][1] / _BASE_GAME_H)
+
+        self.ability = None  # Stores the ability dictionary when upgraded
+        self.last_ability_time = None  # Timestamp tracking for cooldowns
+        self.ability_active = False  # Used exclusively for duration-based states (Maelstrom)
+        self.ability_start_time = 0  # Tracking variable for active duration expiration
 
     def update_monkey_rect(self, game_rect):
         """
@@ -83,7 +86,7 @@ class Monkey(pygame.sprite.Sprite):
             ph = max(1, int(self.size[1] * game_rect.height))
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
-        if self.type is not "tack_shooter":
+        if self.type != "tack_shooter":
             self.image = pygame.transform.rotate(self.image, self.angle - 90)
         self.image.set_colorkey(PINK)
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
@@ -92,28 +95,45 @@ class Monkey(pygame.sprite.Sprite):
 
     def update_range(self, game_rect):
         # we calculate with * 0.88 since the shop takes up 12% of the screen
-        ratio_w = game_rect.width / ((1960 - int(1960 * 0.12)) // 2)
-        ratio_h = game_rect.height / 1080
-        avg_ratio = (ratio_w + ratio_h) / 2
-
-        self.range = avg_ratio * self.original_range
         self.range = self.original_range * (game_rect.width / _BASE_GAME_W)
 
 
     def check_shoot(self, current_time, bloons_list):
+        if getattr(self, 'ability_active', False) and getattr(self, 'ability', {}).get(
+                'type') == 'super_monkey_fan_club':
+            if current_time - self.ability_start_time >= self.ability.get('duration', 10000):
+                self.ability_active = False  # Duration finished
+
+                # Revert back to normal dart monkey stats
+                self.fire_rate = getattr(self, 'original_fire_rate_smfc', self.fire_rate)
+                self.dmg = getattr(self, 'original_dmg_smfc', self.dmg)
+
+        # --- ACTIVE ABILITY RUNTIME: Blade Maelstrom ---
+        if getattr(self, 'ability_active', False) and self.ability and self.ability.get('type') == 'blade_maelstrom':
+            if current_time - self.ability_start_time >= self.ability.get('duration', 3000):
+                self.ability_active = False  # Duration finished
+            else:
+                ability_fire_rate = self.ability.get('fire_rate', 60)
+                if current_time - self.last_shot_time >= ability_fire_rate:
+                    # Shoot 24 projectiles evenly spaced in a 360-degree radius
+                    maelstrom_count = 24
+                    angle_step = 360 / maelstrom_count
+                    base_vector = pygame.Vector2(1, 0)
+
+                    for i in range(maelstrom_count):
+                        dest_norm = base_vector.rotate(i * angle_step)
+                        self.projectile_list.add(Projectile(self, self.pos + dest_norm))
+
+                    self.last_shot_time = current_time
+            return  # Skip normal single-target targeting while Maelstrom is running
+
         if current_time - self.last_shot_time >= self.fire_rate:
             target = self.find_target(bloons_list)
 
             if target:
-                # m_pos = pygame.math.Vector2(game_rect.x + self.pos.x * game_rect.width, game_rect.y + self.pos.y * game_rect.height)
-                # b_pos = pygame.math.Vector2(game_rect.x + target.pos.x * game_rect.width, game_rect.y + target.pos.y * game_rect.height)
                 normalized_direction = target.pos - self.pos
-
-                # direction = b_pos - m_pos
-                # rads = math.atan2(-direction.y, direction.x)
                 rads = math.atan2(-normalized_direction.y, normalized_direction.x)
                 self.angle = math.degrees(rads)
-                # self.image = pygame.transform.rotate(self.sized_image, angle-90)
                 self.rect = self.image.get_rect(center=self.rect.center)
                 self.image.set_colorkey(PINK)
 
@@ -121,9 +141,23 @@ class Monkey(pygame.sprite.Sprite):
 
                 if self.hitscan:
                     # Instantly apply ALL damage to the single target.
-                    children, money = target.take_damage(self.dmg)
+                    stun_duration = 0
+                    if self.proj_angle != 0:
+                        # --- FIX: Changed 'is' to '==' and tracking stun_duration ---
+                        if target.type == "moab" or target.type == "bfb":
+                            stun_duration = 2000
+                            children, money = target.take_damage(self.dmg, 2000)
+                        elif target.type == "zomg":
+                            stun_duration = 500
+                            children, money = target.take_damage(self.dmg, 500)
+                        else:
+                            children, money = target.take_damage(self.dmg)
+                    else:
+                        children, money = target.take_damage(self.dmg)
+
                     self.pending_money += money
-                    self.pending_hits.append({"id": target.id, "dmg": self.dmg})  # <--- Add this line
+                    # --- FIX: Add stun to pending hits data dictionary ---
+                    self.pending_hits.append({"id": target.id, "dmg": self.dmg, "stun": stun_duration})
 
                     if children:
                         self.pending_children.extend(children)
@@ -163,8 +197,10 @@ class Monkey(pygame.sprite.Sprite):
                 elif key == 'weaknesses':
                     getattr(self, key).remove(upgrade[key])
                 elif key == 'size':
-                    setattr(self, key, [upgrade[key][0] / _BASE_GAME_W, upgrade[key][1] / _BASE_GAME_W])
+                    setattr(self, key, [upgrade[key][0] / _BASE_GAME_W, upgrade[key][1] / _BASE_GAME_H])
                 else:
+                    if key == 'ability':
+                        self.last_ability_time = pygame.time.get_ticks()
                     # This dynamically sets the attribute named after whatever is in 'key'
                     setattr(self, key, upgrade[key])
 
@@ -201,3 +237,89 @@ class Monkey(pygame.sprite.Sprite):
             total_monkey_earnings += curr_earnings
         return all_children, total_monkey_earnings, all_bloons_hit
 
+    def trigger_ability(self, current_time, bloons_list):
+        if not hasattr(self, 'ability') or not self.ability:
+            return False
+
+        # Ensure last_ability_time exists
+        if not hasattr(self, 'last_ability_time'):
+            self.last_ability_time = 0
+
+        # Cooldown check
+        if self.last_ability_time is not None and current_time - self.last_ability_time < self.ability.get('cooldown', 0):
+            return False
+
+        a_type = self.ability.get('type')
+
+        # 1. SUPPLY DROP (Sniper Monkey)
+        if a_type == 'supply_drop':
+            min_c = self.ability.get('min_cash', 500)
+            max_c = self.ability.get('max_cash', 1000)
+            cash = random.randint(min_c, max_c)
+
+            # Safe injection into the main thread's balance loop
+            self.pending_money += cash
+
+            # Play cash sound effect
+            pygame.mixer.Sound(f"assets/sounds/{SOUNDS['cash']}").play()
+
+            self.last_ability_time = current_time
+            return True
+
+        # 2. MOAB ASSASSIN (Bomb Shooter)
+        elif a_type == 'moab_assassin':
+            if not bloons_list:
+                return False
+
+            # Screen-wide prioritization targeting the strongest/furthest MOAB
+            moab_target = None
+            max_dist_traveled = -1
+
+            for bloon in bloons_list:
+                if getattr(bloon, 'type', '') in ['moab', 'bfb', 'zomg']:
+                    if bloon.distance > max_dist_traveled:
+                        max_dist_traveled = bloon.distance
+                        moab_target = bloon
+
+            if moab_target:
+                dmg = self.ability.get('damage', 1000)
+                children, money = moab_target.take_damage(dmg)
+
+                self.pending_money += money
+                self.pending_hits.append({"id": moab_target.id, "dmg": dmg, "stun": 0})
+                if children:
+                    self.pending_children.extend(children)
+
+                # Play explosion audio
+                pygame.mixer.Sound(f"assets/sounds/{SOUNDS['explosion']}").play()
+
+                self.last_ability_time = current_time
+                return True
+
+            return False  # No MOAB active on screen; ability does not consume cooldown
+
+            # 4. SUPER MONKEY FAN CLUB (Dart Monkey)
+        elif a_type == 'super_monkey_fan_club':
+            self.ability_active = True
+            self.ability_start_time = current_time
+            self.last_ability_time = current_time
+
+            # Store original stats so we can revert them when the duration ends
+            self.original_fire_rate_smfc = self.fire_rate
+            self.original_dmg_smfc = self.dmg
+
+            # Temporarily turn this monkey into a "Super Monkey"
+            self.fire_rate = 30  # Shoots incredibly fast (machine gun speed)
+            self.dmg = 1  # Standard super monkey damage
+
+            return True
+
+        # 3. BLADE MAELSTROM (Tack Shooter)
+        elif a_type == 'blade_maelstrom':
+            self.ability_active = True
+            self.ability_start_time = current_time
+            self.last_ability_time = current_time
+            self.last_shot_time = 0
+            return True
+
+        return False

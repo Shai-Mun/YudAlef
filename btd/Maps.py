@@ -1,55 +1,57 @@
 import os
 import pygame
 
+# Global track layout registry mapping player lanes to coordinate sequences
 PATHS = {
     "1": [],
     "2": []
 }
 
+# Master path repository matching level string IDs to background graphic paths
 tracks = {
     "galili": f'assets/maps/galili.png'
 }
 
 def get_ratios(track):
+    """
+    Retrieves the raw path waypoints for a chosen layout.
+    All pairs represent percentages of width and height (0.0 to 1.0)
+    to maintain display-agnostic coordinate evaluation.
+    """
     match track:
         case "galili":
-            # return [
-            #     (0.27, 0.0),  # 1
-            #     (0.27, 0.78),  # 2
-            #     (0.42, 0.88),
-            #     (0.6, 0.9),  # 3
-            #     (0.8, 0.88),
-            #     (0.93, 0.78),  # 4
-            #     (0.93, 0.17),  # 5
-            #     (0.8, 0.08),
-            #     (0.6, 0.04),  # 6
-            #     (0.42, 0.08),
-            #     (0.27, 0.17),  # 7
-            #     (0.27, 1.1),  # 8
-            # ]
             return [
                 (0.27, 0.02),
-                  # 1 - Just below the start line
-                (0.27, 0.79),  # 2 - End of left straight
-                (0.41, 0.87),  # 3 - Entering bottom curve
-                (0.56, 0.92),  # 4 - Middle bottom curve
-                (0.74, 0.90),  # 5 - Middle bottom curve
-                (0.88, 0.83),  # 6 - Exiting bottom curve
-                (0.93, 0.72),  # 7 - Lower right straight
-                (0.93, 0.18),  # 8 - Upper right straight
-                (0.82, 0.08),  # 9 - Entering top curve
-                (0.62, 0.04),  # 10 - Middle top curve
-                (0.46, 0.06),  # 11 - Exiting top curve
-                (0.27, 0.13),  # 12
-                (0.27, 0.97),  # 13 - Finish line
+                (0.27, 0.79),
+                (0.41, 0.87),
+                (0.56, 0.92),
+                (0.74, 0.90),
+                (0.88, 0.83),
+                (0.93, 0.72),
+                (0.93, 0.18),
+                (0.82, 0.08),
+                (0.62, 0.04),
+                (0.46, 0.06),
+                (0.27, 0.13),
+                (0.27, 0.97),
             ]
         case _:
             return []
 
 def inverse(track):
+    """
+    Horizontally mirrors a path coordinate sequence.
+    Flips the X-axis decimal over the central axis line (1.0 - X)
+    while preserving the Y structural height.
+    """
     return [(1 - r[0], r[1]) for r in track]
 
 def update_path():
+    """
+    Rebuilds the global PATHS dictionary.
+    Computes standard trajectories for the local workspace and mirrored
+    trajectories for the opponent workspace.
+    """
     global PATHS
 
     track_ratios = get_ratios("galili")
@@ -62,6 +64,10 @@ def update_path():
 
 
 def update_loc(player, game_rect):
+    """
+    Iterates through active workspace entities and instructs them to map
+    their normalized vector spaces into updated display dimensions.
+    """
     for bloon in player.bloons_list:
         match bloon.side:
             case 1:
@@ -74,14 +80,16 @@ def update_loc(player, game_rect):
         monkey.update_monkey_rect(game_rect)
 
 class Map:
+    """
+    Controls background graphic tracking, rendering surfaces,
+    and aspect-ratio scaling transitions.
+    """
     def __init__(self, track, player):
         self.ratios = get_ratios(track)
         self.bg = pygame.image.load(tracks[track])
 
-        # self.shop_width = int(pygame.display.Info().current_w * 0.12)
         self.shop_width = player.game_rect.x
 
-        # self.size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
         self.size = [player.game_rect.width, player.game_rect.height + player.header_height]
 
         self.screen = pygame.display.set_mode((self.shop_width + self.size[0] * 2, self.size[1]), pygame.NOFRAME)
@@ -90,6 +98,10 @@ class Map:
         update_path()
 
     def update_size(self, player, fullscreen, event = None):
+        """
+        Recalculates rendering surfaces on application resize boundaries.
+        Updates internal viewport boxes and transforms spatial parameters fluidly.
+        """
         if fullscreen:
             w, h = player.full_size[0], player.full_size[1]
         else:
@@ -113,10 +125,13 @@ class Map:
         return [w, h]
 
     def draw_map(self, players):
+        """
+        Renders background layouts and composite asset layers on screen.
+        Flips background surfaces on the fly to render mirrored segments correctly.
+        """
         for p in players:
             self.screen.blit(self.bg_scaled, (p.game_rect.x, p.game_rect.y))
             p.bloons_list.draw(self.screen)
             p.monkeys_list.draw(self.screen)
             for m in p.monkeys_list: m.projectile_list.draw(self.screen)
             self.bg_scaled = pygame.transform.flip(self.bg_scaled, True, False)
-

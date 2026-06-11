@@ -1,5 +1,4 @@
 import random
-
 import pygame
 import math
 from Databases import SOUNDS
@@ -11,6 +10,10 @@ _PROJ_NORM_H = 30 / _BASE_GAME_H
 
 
 class Projectile(pygame.sprite.Sprite):
+    """
+    Manages active projectiles, handling straight-line physics updates,
+    out-of-bounds entity destruction, and blast radius calculations.
+    """
     def __init__(self, monkey, dest):
         super().__init__()
         global _PROJ_NORM_W, _PROJ_NORM_H
@@ -35,7 +38,6 @@ class Projectile(pygame.sprite.Sprite):
         target_pos = pygame.Vector2(dest)
         self.direction = target_pos - self.pos
 
-
         self.hit_bloons = set()
 
         pygame.mixer.init()
@@ -48,12 +50,9 @@ class Projectile(pygame.sprite.Sprite):
 
     def update_proj_rect(self, game_rect):
         """
-        Convert the normalised pos into screen pixels and rebuild self.image /
-        self.rect.  Call once per frame *after* move(), before drawing.
-
-        This is the only place pixels appear – everything else stays in 0..1 space.
+        Translates internal decimal positions into active screen canvas pixels.
+        Terminates the sprite instance instantly if it travels past lane boundaries.
         """
-
         sx = game_rect.x + self.pos.x * game_rect.width
         sy = game_rect.y + self.pos.y * game_rect.height
         if self.size is None:
@@ -73,15 +72,12 @@ class Projectile(pygame.sprite.Sprite):
 
     def move_proj(self, dt: float):
         """
-        Advance the bloon along its path by one frame.
-        Args:
-            dt: Delta time in milliseconds.
-        Returns:
-            True if the bloon has escaped (reached/passed the last waypoint).
+        Advances the projectile forward along its fixed directional path.
+        Tracks the total distance covered and cleans up the instance if it passes range limits.
         """
-        step = self.speed * (dt / 1000)  # Normalised step this frame
+        step = self.speed * (dt / 1000)
 
-        rads = math.atan2(-self.direction.y, self.direction.x)  # Negative Y because pygame Y is inverted
+        rads = math.atan2(-self.direction.y, self.direction.x)
         self.angle = math.degrees(rads)
         self.pos += self.direction.normalize() * step
         self.distance += step
@@ -90,27 +86,26 @@ class Projectile(pygame.sprite.Sprite):
             self.kill()
 
     def check_hit(self, grid):
+        """
+        Queries proximity structures to evaluate collisions with enemy boxes.
+        Applies damage formulas, manages pierce point depletion, and triggers radial explosions.
+        """
         money_earned = 0
         bloons_hit = []
         children = []
 
-        # Get initial targets colliding with the projectile's physical body
         targets = grid.get_nearby_bloons(self)
         hits = pygame.sprite.spritecollide(self, targets, False)
 
         for primary_bloon in hits:
-            # Ignore if already processed or if the bloon type is an explosive immunity
             if primary_bloon in self.hit_bloons or primary_bloon.type in self.weaknesses:
                 continue
 
-            # Trigger explosion behavior for bombs/missiles
             if "bomb" in self.type or "missile" in self.type:
                 pygame.mixer.Sound(f"assets/sounds/{SOUNDS['explosion']}").play()
 
-                # Define a normalized blast radius (e.g., 0.08 of game width)
                 blast_radius = 0.08
 
-                # Find all nearby bloons within the explosion splash zone
                 for splash_bloon in targets:
                     if self.pierce <= 0:
                         break
@@ -118,11 +113,9 @@ class Projectile(pygame.sprite.Sprite):
                     if splash_bloon in self.hit_bloons or splash_bloon.type in self.weaknesses:
                         continue
 
-                    # Check distance between projectile and splash targets
                     if self.pos.distance_to(splash_bloon.pos) <= blast_radius:
                         stun_duration = 0
 
-                        # Apply Bloon Impact stun to non-MOAB classes
                         if self.type == 'impact_bomb':
                             if splash_bloon.type not in ['moab', 'bfb', 'zomg']:
                                 stun_duration = 2000
@@ -139,12 +132,10 @@ class Projectile(pygame.sprite.Sprite):
                         self.hit_bloons.add(splash_bloon)
                         self.pierce -= 1
 
-                # Kill the physical bomb projectile after creating the explosion
                 self.kill()
                 break
 
             else:
-                # --- Standard Non-Explosive Projectile Logic (Darts/Tacks/etc.) ---
                 stun_duration = 0
                 curr_children, money = primary_bloon.take_damage(self.dmg)
 

@@ -277,6 +277,15 @@ def handle_client(sock, tid, addr):
     if current_user:
         with online_users_lock:
             online_users.pop(current_user, None)
+        # Clean up any lobby this user owned or was a guest in
+        with lobbies_lock:
+            if current_user in active_lobbies:
+                del active_lobbies[current_user]
+            else:
+                for host, guest in list(active_lobbies.items()):
+                    if guest == current_user:
+                        del active_lobbies[host]
+                        break
         broadcast(f"U_LEFT~{current_user}")
         print(f'{current_user} removed from online users')
 

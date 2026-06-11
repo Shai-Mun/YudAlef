@@ -1,29 +1,29 @@
-# GUI.py
 import pygame
 from Databases import MONKEY_DATA, BLOON_CONFIG, SOUNDS
 from Bloon import BLOON_DATA
-
 from Player import PINK
 
 pygame.font.init()
 pygame.mixer.init()
 UI_FONT = pygame.font.SysFont("Arial", 18, bold=True)
-COST_FONT = pygame.font.SysFont("Arial", 16, bold=True)  # Slightly smaller for costs
+COST_FONT = pygame.font.SysFont("Arial", 16, bold=True)
 
 
 class InterfaceButton:
     def __init__(self, rect, name, color=(70, 70, 70), image=None):
+        # Initializes a single item element inside the shop or path menus
         self.rect = rect
         self.name = name
         self.color = color
         self.image = image
         self.label = ""
-        self.cost = 0  # New attribute for the price tag
+        self.cost = 0
 
         if not self.image:
             self.load_default_image()
 
     def load_default_image(self):
+        # Detects button context to automatically map the correct graphic assets
         try:
             if self.name in BLOON_CONFIG.keys():
                 path = f"assets/bloons/{BLOON_DATA[BLOON_CONFIG[self.name]['color']]['image']}"
@@ -45,15 +45,14 @@ class InterfaceButton:
             self.image = None
 
     def draw_button(self, surface, offset_y=0):
+        # Draws backgrounds, localized labels, asset textures, and purchase price text
         draw_rect = self.rect.move(0, offset_y)
         pygame.draw.rect(surface, self.color, draw_rect, border_radius=5)
 
-        # 1. Draw the Label (Top Left)
         if self.label:
             text_surf = UI_FONT.render(self.label, True, (255, 255, 255))
             surface.blit(text_surf, (draw_rect.x + 8, draw_rect.y + 5))
 
-        # 2. Draw the Image
         if self.image:
             if 'path_' in self.name or self.name == "ability":
                 size = int(self.rect.h * 0.65)
@@ -63,19 +62,21 @@ class InterfaceButton:
                 img = pygame.transform.scale(self.image, (self.rect.w - 10, self.rect.h - 10))
                 surface.blit(img, (draw_rect.x + 5, draw_rect.y + 5))
 
-        # 3. Draw the Cost (Bottom Right)
         if self.cost > 0:
-            cost_surf = COST_FONT.render(f"${self.cost}", True, (255, 255, 0))  # Yellow for money
+            cost_surf = COST_FONT.render(f"${self.cost}", True, (255, 255, 0))
             cost_x = draw_rect.right - cost_surf.get_width() - 5
             cost_y = draw_rect.bottom - cost_surf.get_height() - 5
             surface.blit(cost_surf, (cost_x, cost_y))
 
     def set_img(self, obj_type):
+        # Dynamically swaps out textures and purchase costs for unlocked options
         try:
             if obj_type in BLOON_CONFIG.keys():
                 path = f"assets/bloons/{BLOON_DATA[BLOON_CONFIG[obj_type]['color']]['image']}"
+                self.cost = BLOON_CONFIG[obj_type].get('cost', 0)
             else:
                 path = f"assets/monkeys/{obj_type}/{MONKEY_DATA[obj_type]['image']}"
+                self.cost = MONKEY_DATA[obj_type]['base'].get('cost', 0)
 
             self.image = pygame.image.load(path).convert()
             self.image.set_colorkey(PINK)
@@ -85,6 +86,7 @@ class InterfaceButton:
 
 class GameInterface:
     def __init__(self):
+        # Configures visual color layout schemas for sidebars, headers, and buttons
         self.COLOR_PILLAR_HEADER = (100, 60, 40)
         self.COLOR_SHOP = (185, 120, 85)
         self.COLOR_BORDER = (145, 90, 60)
@@ -99,6 +101,7 @@ class GameInterface:
         self.update_layout(True)
 
     def update_layout(self, fullscreen, event=None):
+        # Scales and aligns interface panels relative to current screen dimensions
         if fullscreen:
             info = pygame.display.Info()
             w, h = info.current_w, info.current_h
@@ -144,16 +147,19 @@ class GameInterface:
                 self.bloon_buttons[i].rect = rect
 
     def set_monkey_imgs(self, monkey_map):
+        # Direct lookup mapping to apply visual templates onto monkey shop indices
         for btn in self.monkey_buttons:
             btn.set_img(monkey_map[btn.name])
 
     def handle_scroll(self, direction):
+        # Limits layout vertical scrolling offsets to match content height
         rows = len(self.bloon_buttons) // 2
         content_height = rows * self.col_w
         max_scroll = max(0, content_height - self.bloon_area_rect.height + 50)
         self.scroll_y = max(0, min(self.scroll_y + (direction * 30), max_scroll))
 
     def get_clicked_item(self, pos):
+        # Maps screen collision points to specific control buttons, considering vertical scroll offsets
         for btn in self.monkey_buttons:
             if btn.rect.collidepoint(pos): return btn.name
         if self.bloon_area_rect.collidepoint(pos):
@@ -163,6 +169,7 @@ class GameInterface:
         return None
 
     def draw_gui(self, surface, timer_seconds, p1, p2, round_num=1):
+        # Renders the central HUD, player status trackers, eco indicators, and action menus
         pygame.draw.rect(surface, self.COLOR_SHOP, self.shop_rect)
         for btn in self.monkey_buttons: btn.draw_button(surface)
 
@@ -270,6 +277,7 @@ class GameInterface:
         queue_y_start = header_h + 30
         queue_spacing = 45
 
+        # Renders the vertical layout tracking sent bloon queue batches along the central pillar
         for i, batch in enumerate(my_player.send_queue):
             color = batch["color"]
             count = batch["count"]
@@ -309,12 +317,14 @@ class GameInterface:
 
 class UpgradeMenu:
     def __init__(self):
+        # Sets background colors and initializes empty structures for upgrade UI layouts
         self.COLOR_BG = (80, 50, 30)
         self.buttons = {}
         self.image_cache = {}
         self.update_layout(True)
 
     def get_upgrade_image(self, path):
+        # Retrieves an upgrade path's visual asset from the local cache or initializes it if missing
         if path not in self.image_cache:
             try:
                 img = pygame.image.load(path).convert()
@@ -325,6 +335,7 @@ class UpgradeMenu:
         return self.image_cache[path]
 
     def update_layout(self, fullscreen, event=None):
+        # Re-allocates bounding boxes for interactive upgrade slots when display scale adjustments occur
         if fullscreen:
             info = pygame.display.Info()
             w, h = info.current_w, info.current_h
@@ -342,7 +353,6 @@ class UpgradeMenu:
         self.sell_rect = pygame.Rect(self.portrait_rect.right + margin, self.rect.y + margin, 120,
                                      self.height - (margin * 2))
 
-        # Dynamically split remaining space into 3 rows/columns to incorporate the Ability Slot
         rem_w = self.rect.right - (self.sell_rect.right + margin)
         path_w = (rem_w - (margin * 4)) // 3
 
@@ -365,6 +375,7 @@ class UpgradeMenu:
             self.buttons["ability"].rect = self.ability_rect
 
     def draw_upgrade_gui(self, surface, monkey):
+        # Draws upgrade path selectors and handles alpha masks for ability cooldown counters
         pygame.draw.rect(surface, self.COLOR_BG, self.rect)
         pygame.draw.rect(surface, (120, 90, 60), self.portrait_rect)
 
@@ -380,21 +391,17 @@ class UpgradeMenu:
 
         for name, btn in self.buttons.items():
             if name == "ability":
-                # Only draw the button if the monkey possesses an active ability config
                 if not getattr(monkey, 'ability', None):
                     continue
 
-                # Format name nicely for the button label
                 ability_type = monkey.ability.get('type', 'ability')
                 btn.label = ability_type.replace('_', ' ').title()
 
-                # Attempt to render a local ability graphic icon if one matches the string
                 full_path = f"assets/projectiles/{monkey.projectile}.png" if getattr(monkey, 'projectile',
                                                                                      None) else f"assets/monkeys/{monkey.type}/{MONKEY_DATA[monkey.type]['image']}"
                 btn.image = self.get_upgrade_image(full_path)
                 btn.draw_button(surface)
 
-                # --- COOLDOWN VISUAL MASK OVERLAY ---
                 if monkey.last_ability_time is not None:
                     time_passed = current_time - monkey.last_ability_time
                     cooldown_total = monkey.ability.get('cooldown', 30000)
@@ -402,12 +409,10 @@ class UpgradeMenu:
                         cooldown_ratio = 1.0 - (time_passed / cooldown_total)
                         overlay_h = int(btn.rect.height * cooldown_ratio)
 
-                        # Create clean Alpha surface bounds
                         mask_surf = pygame.Surface((btn.rect.width, overlay_h), pygame.SRCALPHA)
-                        mask_surf.fill((0, 0, 0, 190))  # Semi-transparent dark curtain
+                        mask_surf.fill((0, 0, 0, 190))
                         surface.blit(mask_surf, (btn.rect.x, btn.rect.bottom - overlay_h))
 
-                        # Centered text countdown
                         rem_seconds = int((cooldown_total - time_passed) / 1000) + 1
                         cd_font = pygame.font.SysFont("Arial", 26, bold=True)
                         text_surf = cd_font.render(f"{rem_seconds}s", True, (255, 255, 255))
@@ -419,28 +424,27 @@ class UpgradeMenu:
                 btn.draw_button(surface)
 
     def get_click(self, pos, monkey):
-        # If clicked completely outside the upgrade panel, close it
+        # Maps clicks inside panel bounds to active actions or prompts UI dismissal if outside
         if not self.rect.collidepoint(pos):
             return "close"
 
         for name, btn in self.buttons.items():
             if btn.rect.collidepoint(pos):
                 if name == "ability":
-                    # Only register the click if the selected monkey actually has an ability unlocked
                     if getattr(monkey, 'ability', None):
                         return name
-                    return None  # Ignore click if the button is invisible/empty
+                    return None
                 return name
         return None
 
     def gui_upgrade(self, monkey, path, next_u=1):
+        # Applies stat modifications to a monkey entity and toggles locked upgrade tier labels
         target_btn = self.buttons[f"path{path}"]
 
         if monkey.paths[path] == 4 or (monkey.paths[0] == abs(path - 3) and monkey.paths[path] == 2):
             target_btn.label = "MAXED"
             target_btn.image = None
             target_btn.cost = 0
-            monkey.paths[path] = 4
 
         elif monkey.paths[path] < 4:
             data = MONKEY_DATA.get(monkey.type)['upgrades'][f'path_{path}'][monkey.paths[path]]

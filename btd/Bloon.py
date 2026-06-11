@@ -1,5 +1,5 @@
 import pygame
-import math  # Imported for calculating the movement angle along the road
+import math
 
 from Player import _BASE_GAME_W, _BASE_GAME_H, PINK
 
@@ -33,30 +33,21 @@ BLOON_DATA = {
 
 class Bloon(pygame.sprite.Sprite):
     def __init__(self, color: str, side: int, path_list: list, b_id, child_properties=None):
-        """
-        Args:
-            color:     Bloon colour key ("red", "blue", …).
-            side:      Which player this bloon belongs to (1 or 2).
-            path_list: List of normalised Vector2 waypoints (x, y both in 0..1)
-                       relative to the player's game-area rectangle.
-        """
         super().__init__()
 
         self.id = b_id
-
         stats = BLOON_DATA.get(color.lower(), DEFAULT_BLOON)
 
         self.type = color.lower()
-        self.speed = stats["speed"]  # Fraction of game-area width per second
+        self.speed = stats["speed"]
         self.dmg = stats["dmg"]
         self.hp = stats.get('hp')
         self.side = side
-        self.path = path_list  # Normalised waypoints – shared reference is fine
+        self.path = path_list
 
         self.target_node = 1
-        self.distance = 0.0  # Normalised distance travelled (targeting priority)
+        self.distance = 0.0
 
-        # pos is always normalised (0..1) within the player's game_rect.
         self.pos = pygame.Vector2(self.path[0])
 
         self.original_image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
@@ -68,12 +59,12 @@ class Bloon(pygame.sprite.Sprite):
         self.time_stunned = 0
         self.when_stunned = 0
 
-        # --- MOAB configuration and custom sizing pattern ---
         self.is_moab = stats.get("is_moab", False)
         self.size = None
         if "size" in stats:
             self.size = [stats['size'][0] / _BASE_GAME_W, stats['size'][1] / _BASE_GAME_H]
 
+        # Restores state properties if instantiation occurs via parent layer splitting
         if child_properties:
             self.target_node = child_properties["target_node"]
             self.distance = child_properties["distance"]
@@ -82,7 +73,6 @@ class Bloon(pygame.sprite.Sprite):
             self.time_stunned = child_properties.get("time_stunned", 0)
             self.when_stunned = child_properties.get("when_stunned", 0)
 
-        # --- Track movement angle for MOAB rotation ---
         self.angle = 0
         if self.is_moab and self.target_node < len(self.path):
             direction = pygame.Vector2(self.path[self.target_node]) - self.pos
@@ -91,16 +81,10 @@ class Bloon(pygame.sprite.Sprite):
                 self.angle = math.degrees(rads)
 
     def update_bloon_rect(self, game_rect):
-        """
-        Convert the normalised pos into screen pixels and rebuild self.image /
-        self.rect.  Call once per frame *after* move(), before drawing.
-
-        This is the only place pixels appear – everything else stays in 0..1 space.
-        """
+        # Converts coordinate dimensions from normalized scalar units (0..1) into explicit display pixels
         sx = game_rect.x + self.pos.x * game_rect.width
         sy = game_rect.y + self.pos.y * game_rect.height
 
-        # Use custom size if specified (matching Sniper Monkey pattern)
         if self.size is None:
             pw = max(1, int(_BLOON_NORM_W * game_rect.width))
             ph = max(1, int(_BLOON_NORM_H * game_rect.height))
@@ -110,7 +94,6 @@ class Bloon(pygame.sprite.Sprite):
 
         self.image = pygame.transform.scale(self.original_image, (pw, ph))
 
-        # Only spin MOAB-class targets using the self.angle configuration
         if self.is_moab:
             self.image = pygame.transform.rotate(self.image, self.angle)
 
@@ -118,21 +101,15 @@ class Bloon(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(round(sx), round(sy)))
 
     def move_bloon(self, dt: float) -> bool:
-        """
-        Advance the bloon along its path by one frame.
-        Args:
-            dt: Delta time in milliseconds.
-        Returns:
-            True if the bloon has escaped (reached/passed the last waypoint).
-        """
+        # Steps the bloon along path waypoints using time delta values and monitors leak events
         if self.target_node >= len(self.path):
-            return True  # Escaped – caller should deduct lives and kill()
+            return True
 
         if self.move:
             target = pygame.Vector2(self.path[self.target_node])
             direction = target - self.pos
             dist = direction.length()
-            step = self.speed * (dt / 1000)  # Normalised step this frame
+            step = self.speed * (dt / 1000)
 
             if dist <= step:
                 self.pos = pygame.Vector2(target)
@@ -140,7 +117,6 @@ class Bloon(pygame.sprite.Sprite):
             else:
                 self.pos += direction.normalize() * step
 
-            # --- Update angle dynamically along the road if it is a MOAB ---
             if self.is_moab and direction.length() > 0:
                 rads = math.atan2(-direction.y, direction.x)
                 self.angle = math.degrees(rads)
@@ -155,10 +131,7 @@ class Bloon(pygame.sprite.Sprite):
         return False
 
     def take_damage(self, dmg: int, stun=None):
-        """
-        Apply damage, downgrading the bloon layer by layer.
-        Handles high-damage overflow perfectly for multi-child bloons.
-        """
+        # Subtracts structural integrity points and runs nested layer generation loops on destruction
         children = []
         popped = 0
         rem_dmg = dmg
@@ -186,11 +159,17 @@ class Bloon(pygame.sprite.Sprite):
                                     "pos": self.pos
                                 }
 
-                                # Only apply stun properties if a valid stun duration exists
-                                if stun is not None and stun > 0:
+                                is_currently_stunned = not self.move and (
+                                            pygame.time.get_ticks() - self.when_stunned < self.time_stunned)
+
+                                if (stun is not None and stun > 0) or is_currently_stunned:
                                     child_properties["move"] = False
-                                    child_properties["time_stunned"] = stun
-                                    child_properties["when_stunned"] = pygame.time.get_ticks()
+                                    if stun is not None and stun > 0:
+                                        child_properties["time_stunned"] = stun
+                                        child_properties["when_stunned"] = pygame.time.get_ticks()
+                                    else:
+                                        child_properties["time_stunned"] = self.time_stunned
+                                        child_properties["when_stunned"] = self.when_stunned
 
                                 child_id = f"{self.id}_{child_index}"
                                 child_index += 1
@@ -203,7 +182,6 @@ class Bloon(pygame.sprite.Sprite):
                             for idx, child in enumerate(spawned_children):
                                 child_dmg = dmg_per_child + (1 if idx < extra_dmg else 0)
                                 if child_dmg > 0:
-                                    # --- FIX 1: Pass the stun argument down via recursion ---
                                     sub_children, sub_popped = child.take_damage(child_dmg, stun=stun)
                                     children.extend(sub_children)
                                     popped += sub_popped
@@ -215,7 +193,6 @@ class Bloon(pygame.sprite.Sprite):
                         return children, popped
 
                     else:
-                        # Single child downgrade (e.g. Blue -> Red)
                         self.type = child_type
                         stats = BLOON_DATA[self.type]
                         self.speed = stats["speed"]
@@ -223,13 +200,11 @@ class Bloon(pygame.sprite.Sprite):
                         self.original_image = pygame.image.load(f"assets/bloons/{stats['image']}").convert()
                         self.original_image.set_colorkey(PINK)
 
-                        # --- Re-verify MOAB status and size configuration for downgrades ---
                         self.is_moab = stats.get("is_moab", False)
                         self.size = None
                         if "size" in stats:
                             self.size = [stats['size'][0] / _BASE_GAME_W, stats['size'][1] / _BASE_GAME_H]
 
-                        # --- FIX 2: Only freeze movement if stun is explicitly passed ---
                         if stun is not None and stun > 0:
                             self.move = False
                             self.time_stunned = stun
@@ -243,7 +218,6 @@ class Bloon(pygame.sprite.Sprite):
                     return children, popped
 
             else:
-                # --- FIX 3: Multi-HP layer damage (MOABs/Ceramics) ---
                 if stun is not None and stun > 0:
                     self.move = False
                     self.time_stunned = stun
@@ -252,5 +226,8 @@ class Bloon(pygame.sprite.Sprite):
                 popped += 1
                 self.hp -= 1
                 rem_dmg -= 1
+
+        if self.hp is not None and self.hp <= 0:
+            return self.take_damage(0, stun)
 
         return children, popped

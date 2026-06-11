@@ -149,7 +149,7 @@ MONKEY_DATA = {
                 {
                     "name": "Supply Drop",
                     "cost": 4200,
-                    "ability": {"type": "supply_drop", "cooldown": 10000, "min_cash": 500, "max_cash": 1000} # 60000
+                    "ability": {"type": "supply_drop", "cooldown": 60000, "min_cash": 500, "max_cash": 1000} # 60000
                 }
             ]
         }

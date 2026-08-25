@@ -8,19 +8,19 @@ from  tcp_by_size import send_with_size ,recv_by_size
 
 
 def manu():
-    print "1. Update User\n" + \
+    print("1. Update User\n" + \
           "2. Insert User\n" + \
           "3. Delete User\n" + \
           "4. Get All Users\n>" +\
-          "9. exit\n\n>"
+          "9. exit\n\n>")
 
-    data = raw_input("Enter Num> ")
+    u_data = input("Enter Num> ")
 
-    if data == "9":
+    if u_data == "9":
         return "q"
-    elif data == "1":
-        name = raw_input("Enter name > ")
-        password = raw_input("Enter name > ")
+    elif u_data == "1":
+        name = input("Enter name > ")
+        password = input("Enter name > ")
         #
         #
         #
@@ -36,17 +36,17 @@ cli_s.connect(("127.0.0.1",33445))
 
 
 while True:
-    data = manu()
+    u_data = manu()
 
 
-    if data == "q":
+    if u_data == "q":
         break
-    send_with_size(cli_s,data)
+    send_with_size(cli_s,u_data)
 
-    data = recv_by_size(cli_s)
-    if data =="":
-        print "seems server DC"
+    u_data = recv_by_size(cli_s)
+    if u_data =="":
+        print("seems server DC")
         break
-    print "Got>>" + data
+    print("Got>>" + u_data)
 
 

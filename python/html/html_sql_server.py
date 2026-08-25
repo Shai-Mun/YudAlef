@@ -1,8 +1,10 @@
 __author__ = 'Yossi'
 import socket
+from queue import Queue
+
 import SQL_ORM
 
-import Queue, threading,time, random
+import threading,time, random
 from  tcp_by_size import send_with_size ,recv_by_size
 DEBUG = True
 exit_all = False
@@ -13,13 +15,13 @@ exit_all = False
 def handl_client(sock , tid, db):
     global exit_all
     
-    print "New Client num " + str(tid)
+    print("New Client num " + str(tid))
     
     while not exit_all:
         try:
             data = recv_by_size(sock)
             if data == "":
-                print "Error: Seens Client DC"
+                print("Error: Seems Client DC")
                 break
 
 
@@ -31,14 +33,14 @@ def handl_client(sock , tid, db):
         except socket.error as  err:
             if err.errno == 10054:
                 #'Connection reset by peer'
-                print "Error %d Client is Gone. %s reset by peer." % (err.errno,str(sock))
+                print("Error %d Client is Gone. %s reset by peer." % (err.errno,str(sock)))
                 break
             else:
-                print "%d General Sock Error Client %s disconnected" % (err.errno,str(sock))
+                print("%d General Sock Error Client %s disconnected" % (err.errno,str(sock)))
                 break
 
         except Exception as err:
-            print "General Error:", err.message
+            print("General Error:", err.message)
             break
     sock.close()
 
@@ -53,7 +55,7 @@ def do_action(data ,db):
     fields = data.split('|')
 
     if DEBUG:
-        print "Got client request " + action + " -- " + str(fields) 
+        print ("Got client request " + action + " -- " + str(fields) )
 
     if action == "UPDUSR":
         usr = SQL_ORM.User(fields[0], fields[1], fields[2], fields[3], fields[4], \
@@ -73,7 +75,7 @@ def do_action(data ,db):
         to_send = "RULIVER|"+ "yes i am a live server"
 
     else:
-        print "Got unknown action from client " +action
+        print ("Got unknown action from client " +action)
         to_send = "ERR___R|001|"+ "unknown action"
 
     return to_send
@@ -84,17 +86,17 @@ def do_action(data ,db):
 def q_manager(q,tid):
     global exit_all
     
-    print "manager start:" + str(tid)
+    print ("manager start:" + str(tid))
     while not exit_all:
         item = q.get()
-        print "manager got somthing:" + str(item)
+        print ("manager got somthing:" + str(item))
         # do some work with it(item)
 
 
 
         q.task_done()
         time.sleep(0.3)
-    print "Manager say Bye"
+    print ("Manager say Bye")
     
 
 
@@ -106,7 +108,7 @@ def main ():
     
     s = socket.socket()
     
-    q = Queue.Queue()
+    q = Queue()
 
     q.put("Hi for start")
     
@@ -116,7 +118,7 @@ def main ():
     s.bind(("0.0.0.0", 33445))
 
     s.listen(4)
-    print "after listen"
+    print ("after listen")
 
     threads = []
     i = 1
@@ -125,7 +127,7 @@ def main ():
         t = threading.Thread(target =handl_client, args=(cli_s, i,db))
         t.start()
         i+=1
-        threads.append(t);
+        threads.append(t)
 
 
 

@@ -7,33 +7,35 @@ import pickle
 
 __author__ = 'Yossi'
 
+from math import floor
 
-class User(object):
-    def __init__(self,user_name,user_password,first_Name,last_Name,adress,phone,email,accountID,isAdmin):
-        self.user_name= user_name
-        self.user_password=user_password
-        self.first_Name=first_Name
-        self.last_Name=last_Name
-        self.adress=adress
-        self.email=email
-        self.phone=phone
-        self.account_ID=accountID
-        self.isAdmin= isAdmin
 
-    def new_pass(self,newPassword):
-        self.user_password= newPassword
+class Apartment(object):
+    def __init__(self,owner,aprt_pass,street,flr,num,email,phone,accountID,isAdmin):
+        self.owner = owner
+        self.aprt_pass = aprt_pass
+        self.street = street
+        self.floor = flr
+        self.num = num
+        self.email = email
+        self.phone = phone
+        self.account_ID = accountID
+        self.isAdmin = isAdmin
+
+    def new_pass(self,new_pass):
+        self.aprt_pass= new_pass
 
     def change_manager_status(self):
-        self.is_manager= not self.is_manager
+        self.is_manager = not self.is_manager
 
     def __str__(self):
-        return "user:"+self.user_name+":"+self.user_password+":"+self.first_Name+":" + \
-                      self.last_Name+":"+self.adress+":"+self.phone+":"+self.email+":"+ \
+        return "user:"+self.owner+ ":"+self.aprt_pass+ ":"+self.street+ ":" + \
+                      self.floor+":"+self.num+ ":"+self.phone+ ":"+self.email+ ":"+ \
                       str(self.account_ID)+":"+self.isAdmin
 
-class Account(object):
-    def __init__(self,id,balance,manager,):
-        self.id=id
+class Landlord(object):
+    def __init__(self,acc_id,balance,manager,):
+        self.id=acc_id
         self.balance=balance
         self.manager=manager
         self.credit_cards=[]
@@ -47,17 +49,18 @@ class UserAccountORM():
     def __init__(self):
         self.conn = None  # will store the DB connection
         self.cursor = None   # will store the DB connection cursor
-    def open_DB(self):
+
+    def open_db(self):
         """
         will open DB file and put value in:
         self.conn (need DB file name)
         and self.cursor
         """
         self.conn = sqlite3.connect('UserAccount.db')
-        self.current=self.conn.cursor()
+        self.current = self.conn.cursor()
         
         
-    def close_DB(self):
+    def close_db(self):
         self.conn.close()
 
     def commit(self):
@@ -68,8 +71,8 @@ class UserAccountORM():
 
     #All read SQL
 
-    def GetUser(self,username):
-        self.open_DB()
+    def get_user(self, username):
+        self.open_db()
 
         usr=None
         sql= "SELECT ................ "
@@ -79,13 +82,14 @@ class UserAccountORM():
 
 
          
-        self.close_DB()
+        self.close_db()
         return usr
     
-    def GetAccounts(self):
+    def get_accounts(self):
         pass
-    def GetUsers(self):
-        self.open_DB()
+
+    def get_users(self):
+        self.open_db()
         usrs=[]
 
 
@@ -93,20 +97,20 @@ class UserAccountORM():
 
 
 
-        self.close_DB()
+        self.close_db()
 
         return usrs
 
 
 
     def get_user_balance(self,username):
-        self.open_DB()
+        self.open_db()
 
         sql="SELECT a.Balance FROM Accounts a , Users b WHERE a.Accountid=b.Accountid and b.Username='"+username+"'"
         res = self.current.execute(sql)
         for ans in res:
             balance =  ans[0]
-        self.close_DB()
+        self.close_db()
         return balance
 
 
@@ -142,29 +146,29 @@ class UserAccountORM():
     
     #def insert_new_account(self,username,password,firstname,lastname,address,phone,email):
     def insert_new_account(self,user):
-        self.open_DB()
+        self.open_db()
         sql= "SELECT MAX(Accountid) FROM Accounts"
         res = self.current.execute(sql)
         for ans in res:
             accountID= ans[0]+1
         sql="INSERT INTO Users (Username, Password, Fname, Lname, Adress, Phone, Email,Accountid,Isadmin)"
         sql+=" VALUES('"+user.username+"','"+user.password+"','"+user.firstname+"','"+user.lastname+"',"
-        sql+="'"+user.address+"','"+user.phone+"','"+user.email+"',"+str(accountID)+",'no')"
+        sql+="'" + user.street + "','" + user.phone + "','" + user.email + "'," + str(accountID) + ",'no')"
         res =self.current.execute(sql)
         sql="INSERT INTO Accounts (Accountid,Balance,Manager) VALUES("+str(accountID)+",0,'"+user.username+"')"
         res=self.current.execute(sql)
         self.commit()
-        self.close_DB()
+        self.close_db()
         print (res)
         return "Ok"
 
 
     def update_user(self,user):
-        self.open_DB()
+        self.open_db()
 
 
 
-        self.close_DB()
+        self.close_db()
         return True
 
 
@@ -181,10 +185,10 @@ class UserAccountORM():
 
 
 def main_test():
-    user1= User("Yos","12345","yossi","zahav","kefar saba","123123123","1111",1,'11')
+    user1= Apartment("Yos", "12345", "yossi", "zahav", "kefar saba", "123123123", "1111", 1, '11')
 
     db= UserAccountORM()
-    db.delete_user(user1.user_name)
+    db.delete_user(user1.owner)
     users= db.get_users()
     for u in users :
         print(u)

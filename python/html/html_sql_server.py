@@ -1,51 +1,78 @@
-__author__ = 'Yossi'
 import socket
+import threading
+import hashlib
+import time
 from queue import Queue
 
 import SQL_ORM
+import enc_utils
 
-import threading,time, random
-from  tcp_by_size import send_with_size ,recv_by_size
-DEBUG = True
 exit_all = False
+PEPPER = "YourSuperSecretStaticPepper123!"
 
 
-
-
-def handl_client(sock , tid, db):
+def handl_client(sock, tid, db):
     global exit_all
-    
-    print("New Client num " + str(tid))
-    
-    while not exit_all:
-        try:
-            data = recv_by_size(sock)
-            if data == "":
-                print("Error: Seems Client DC")
+    print(f"New Client num {tid}")
+
+    try:
+        method = enc_utils.recv_msg(sock).decode()
+        if method == "DPH":
+            encryption_key = enc_utils.dph_serv(sock)
+        elif method == "RSA":
+            encryption_key = enc_utils.rsa_serv(sock)
+        else:
+            sock.close()
+            return
+
+        is_authenticated = False
+
+        while not exit_all:
+            enc_data = enc_utils.recv_msg(sock)
+            if not enc_data:
                 break
 
+            # Manual AES Decryption
+            iv, ct = enc_data[:16], enc_data[16:]
+            msg = enc_utils.aes_cbc_decrypt(ct, iv, encryption_key).decode()
 
-            to_send = do_action(data ,db)
+            if not is_authenticated:
+                if msg.startswith("LOGIN|"):
+                    _, username, raw_password = msg.split('|', 2)
+                    user_record = db.get_user_credentials(username)
 
-            
-            send_with_size(sock,to_send)
+                    if user_record:
+                        salt, stored_hash = user_record['salt'], user_record['password_hash']
+                        attempt_hash = hashlib.sha256((salt + raw_password + PEPPER).encode()).hexdigest()
 
-        except socket.error as  err:
-            if err.errno == 10054:
-                #'Connection reset by peer'
-                print("Error %d Client is Gone. %s reset by peer." % (err.errno,str(sock)))
-                break
-            else:
-                print("%d General Sock Error Client %s disconnected" % (err.errno,str(sock)))
-                break
+                        if attempt_hash == stored_hash:
+                            is_authenticated = True
+                            ct_resp, iv_resp = enc_utils.aes_cbc_encrypt(b"LOGIN_OK", encryption_key)
+                            enc_utils.send_msg(sock, iv_resp + ct_resp)
+                            continue
 
-        except Exception as err:
-            print("General Error:", err.message)
-            break
-    sock.close()
+                # Allow registration before login
+                elif msg.startswith("INSUSR|"):
+                    to_send = do_action(msg, db)
+                    ct_resp, iv_resp = enc_utils.aes_cbc_encrypt(to_send.encode(), encryption_key)
+                    enc_utils.send_msg(sock, iv_resp + ct_resp)
+                    continue
+
+                ct_resp, iv_resp = enc_utils.aes_cbc_encrypt(b"LOGIN_FAIL|Invalid credentials", encryption_key)
+                enc_utils.send_msg(sock, iv_resp + ct_resp)
+                continue
+
+            to_send = do_action(msg, db)
+            ct_resp, iv_resp = enc_utils.aes_cbc_encrypt(to_send.encode(), encryption_key)
+            enc_utils.send_msg(sock, iv_resp + ct_resp)
+
+    except Exception as err:
+        print("Client Error:", err)
+    finally:
+        sock.close()
 
 
-def do_action(data ,db):
+def do_action(data, db):
     """
     check what client ask and fill to send with the answer
     """
@@ -54,90 +81,87 @@ def do_action(data ,db):
     data = data[7:]
     fields = data.split('|')
 
-    if DEBUG:
-        print ("Got client request " + action + " -- " + str(fields) )
-
     if action == "UPDUSR":
-        usr = SQL_ORM.User(fields[0], fields[1], fields[2], fields[3], fields[4], \
-                                                fields[5],fields[6], fields[7], False)
+        usr = SQL_ORM.Apartment(fields[0], fields[1], fields[2], fields[3], fields[4],
+                                fields[5], fields[6], fields[7], False)
         if db.update_user(usr):
-            to_send = "UPDUSRR|"+ "Success"
+            to_send = "UPDUSRR|" + "Success"
         else:
-            to_send = "UPDUSRR|"+ "Error"
+            to_send = "UPDUSRR|" + "Error"
 
-    elif action == "BBBBBB":
-        to_send = "BBBBBBR|"+ "b"
+    elif action == "INSUSR":
+        user = SQL_ORM.Apartment(fields[0], fields[1], fields[2], fields[3], fields[4],
+                                 fields[5], fields[6], fields[7], False)
+        if db.insert_new_account(user):
+            to_send = "INSUSRR|" + "Success"
+        else:
+            to_send = "INSUSRR|" + "Error"
 
-    elif action == "CCCCCC":
-        to_send = "CCCCCCR|"+ "c"
+    elif action == "DELUSR":
+        to_send = "DELUSRR|" + "c"
+
+    elif action == "GETUSR":
+        to_send = "GETUSRR|" + "d"
+
 
     elif action == "RULIVE":
-        to_send = "RULIVER|"+ "yes i am a live server"
+        to_send = "RULIVER|" + "yes i am a live server"
 
     else:
-        print ("Got unknown action from client " +action)
-        to_send = "ERR___R|001|"+ "unknown action"
+        print("Got unknown action from client " + action)
+        to_send = "ERR___R|001|" + "unknown action"
 
     return to_send
 
 
-
-
-def q_manager(q,tid):
+def q_manager(q, tid):
     global exit_all
-    
-    print ("manager start:" + str(tid))
+
+    print("manager start:" + str(tid))
     while not exit_all:
         item = q.get()
-        print ("manager got somthing:" + str(item))
+        print("manager got somthing:" + str(item))
         # do some work with it(item)
-
-
 
         q.task_done()
         time.sleep(0.3)
-    print ("Manager say Bye")
-    
+    print("Manager say Bye")
 
 
-def main ():
+def main():
     global exit_all
-    
+
     exit_all = False
-    db= SQL_ORM.UserAccountORM()
-    
+    db = SQL_ORM.UserAccountORM()
+
     s = socket.socket()
-    
+
     q = Queue()
 
     q.put("Hi for start")
-    
-    
+
     manager = threading.Thread(target=q_manager, args=(q, 0))
-    
+
     s.bind(("0.0.0.0", 33445))
 
     s.listen(4)
-    print ("after listen")
+    print("after listen")
 
     threads = []
     i = 1
     while True:
-        cli_s , addr = s.accept()
-        t = threading.Thread(target =handl_client, args=(cli_s, i,db))
+        cli_s, addr = s.accept()
+        t = threading.Thread(target=handl_client, args=(cli_s, i, db))
         t.start()
-        i+=1
+        i += 1
         threads.append(t)
-
-
 
     exit_all = True
     for t in threads:
         t.join()
     manager.join()
-    
-    s.close()
 
+    s.close()
 
 
 main()
